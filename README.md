@@ -1,6 +1,8 @@
 # kastty
 
-A browser-based terminal sharing tool. kastty runs a PTY on your machine, streams it to a local web UI powered by [ghostty-web](https://github.com/coder/ghostty-web), and lets you view or interact with the session from your browser. The name combines "cast" and "tty", with a nod to 「彁（ka）」— a ghost kanji that echoes the ghostty-web lineage.
+A browser-based terminal sharing tool. kastty runs a PTY on your machine, streams it to a local web UI powered by [ghostty-web](https://github.com/coder/ghostty-web), and lets you view or interact with the session from your browser. 
+
+The name combines "cast" and "tty", with a nod to 「彁（ka）」— a ghost kanji that echoes the ghostty-web lineage.
 
 ## Features
 
