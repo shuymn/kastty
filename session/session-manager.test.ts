@@ -133,7 +133,7 @@ describe("SessionManager", () => {
 
     pty.simulateExit(42);
 
-    expect(exitCode).toBe(42);
+    expect(exitCode as number | null).toBe(42 as number | null);
   });
 
   it("keeps PTY alive when client disconnects", () => {
