@@ -23,6 +23,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@fontsource-variable/m-plus-1-code": "^5.2.9",
     "bun-pty": "^0.4.8",
     "ghostty-web": "^0.4.0",
     "zod": "^4.3.6"

@@ -3,6 +3,7 @@ import { ReplayBuffer } from "../buffer/replay-buffer.ts";
 import { BunPtyAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
 import { createServer } from "../server/app.ts";
+import { loadFontAssets } from "../server/fonts.ts";
 import { SessionManager } from "../session/session-manager.ts";
 import homepage from "../web/index.html";
 import type { CliOptions } from "./args.ts";
@@ -52,8 +53,15 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
   }
 
   const port = resolvePort(options.port);
-  const wasmBuffer = await loadWasm();
-  const { fetch: appFetch, websocket } = createServer({ session, token, port, wasmBuffer });
+  const [wasmBuffer, fontAssets] = await Promise.all([loadWasm(), loadFontAssets()]);
+  const { fetch: appFetch, websocket } = createServer({
+    session,
+    token,
+    port,
+    wasmBuffer,
+    fontCss: fontAssets.css,
+    fontFiles: fontAssets.files,
+  });
 
   const server = Bun.serve({
     routes: {

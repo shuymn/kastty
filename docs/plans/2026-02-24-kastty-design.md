@@ -137,6 +137,7 @@ sequenceDiagram
 | Terminal rendering | ghostty-web | xterm.js 互換 API で移行しやすく、表示品質改善の期待値が高い |
 | Protocol | WebSocket | 単一接続、双方向リアルタイム通信 |
 | PTY | bun-pty | Bun 向け PTY ライブラリ。`Bun.Terminal` のバグ回避のため採用（[ADR-0009](../adr/0009-replace-bun-terminal-with-bun-pty.md)） |
+| Default font | M PLUS 1 Code (Variable) + Symbols Nerd Font Mono | CJK 対応等幅フォント + Nerd Font アイコン。npm パッケージ + リポジトリ同梱 WOFF2 で CDN 非依存（[ADR-0010](../adr/0010-bundled-fonts-m-plus-1-code-and-nerd-fonts.md)） |
 
 ### CLI 仕様
 
@@ -262,10 +263,11 @@ kastty --open=false           # ブラウザ自動起動を無効化
 
 ```
 cli/        引数解析、起動設定、ブラウザオープン、Bun.serve() 起動
-server/     fetch / websocket ハンドラ、Host/Origin/Token 検証
+server/     fetch / websocket ハンドラ、Host/Origin/Token 検証、フォント配信
 session/    セッション管理（1 セッション想定）、PTY ライフサイクル
 pty/        BunPtyAdapter（将来の差し替えポイント）
-web/        フロントエンド（ghostty-web + UI）、index.html は Bun HTML imports で自動バンドル
+web/        フロントエンド（ghostty-web + UI）、index.html は Bun HTML imports で自動バンドル、同梱フォントアセット
+scripts/    ユーティリティスクリプト（Nerd Font 更新等）
 protocol/   WS 制御メッセージ型定義（JSON schema 相当の TS 型）
 security/   Host/Origin/Token 検証の純関数
 ```
@@ -285,6 +287,20 @@ security/   Host/Origin/Token 検証の純関数
 | `web/` | フロントエンドビルド | Bun HTML imports（ビルドステップ不要） |
 | `server/` | HTTP / WS サーバー | `Bun.serve()` ネイティブ API（[ADR-0008](../adr/0008-remove-hono-use-bun-native.md)） |
 | `pty/` | PTY 操作 | bun-pty（[ADR-0009](../adr/0009-replace-bun-terminal-with-bun-pty.md)） |
+| `server/` | デフォルトフォント配信 | M PLUS 1 Code (fontsource) + Symbols Nerd Font Mono（[ADR-0010](../adr/0010-bundled-fonts-m-plus-1-code-and-nerd-fonts.md)） |
+
+### フォント配信
+
+デフォルトフォントとして **M PLUS 1 Code**（CJK 対応等幅）と **Symbols Nerd Font Mono**（アイコングリフ）を同梱し、サーバ側で配信する（[ADR-0010](../adr/0010-bundled-fonts-m-plus-1-code-and-nerd-fonts.md)）。
+
+Bun の CSS バンドラが `unicode-range` を破損するため、HTML imports 経由ではなくサーバ側で独自に配信する：
+
+1. 起動時に fontsource パッケージの CSS と WOFF2 をメモリに読み込む
+2. CSS 内の `url()` パスを `/fonts/` ルートに書き換え、Nerd Font の `@font-face` を追記
+3. `/fonts.css` と `/fonts/*` ルートで配信（immutable キャッシュ）
+4. クライアントは `<link>` で CSS を読み込み、`document.fonts.load()` 完了後に ghostty-web を初期化
+
+ユーザーは `?fontFamily=` クエリパラメータでデフォルトフォントを上書きできる。
 
 ### 状態管理
 
@@ -407,6 +423,7 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 | [0007](../adr/0007-url-query-token.md) | トークンを URL クエリパラメータで受け渡し | Proposed |
 | [0008](../adr/0008-remove-hono-use-bun-native.md) | Hono を削除し Bun ネイティブ API に統一 | Accepted |
 | [0009](../adr/0009-replace-bun-terminal-with-bun-pty.md) | Bun.Terminal を bun-pty に置換 | Accepted |
+| [0010](../adr/0010-bundled-fonts-m-plus-1-code-and-nerd-fonts.md) | デフォルトフォントとして M PLUS 1 Code + Nerd Fonts Symbols を同梱・配信 | Proposed |
 
 ## Open Questions
 

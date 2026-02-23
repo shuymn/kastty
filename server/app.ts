@@ -8,6 +8,8 @@ export interface ServerOptions {
   token: string;
   port: number;
   wasmBuffer?: ArrayBuffer;
+  fontCss?: string;
+  fontFiles?: Map<string, ArrayBuffer>;
 }
 
 function toArrayBuffer(data: Uint8Array): ArrayBuffer {
@@ -35,6 +37,22 @@ export function createServer(options: ServerOptions) {
       return new Response(options.wasmBuffer, {
         headers: { "Content-Type": "application/wasm" },
       });
+    }
+
+    if (url.pathname === "/fonts.css" && options.fontCss) {
+      return new Response(options.fontCss, {
+        headers: { "Content-Type": "text/css; charset=utf-8", "Cache-Control": "public, max-age=31536000, immutable" },
+      });
+    }
+
+    if (url.pathname.startsWith("/fonts/") && options.fontFiles) {
+      const name = url.pathname.slice("/fonts/".length);
+      const buf = options.fontFiles.get(name);
+      if (buf) {
+        return new Response(buf, {
+          headers: { "Content-Type": "font/woff2", "Cache-Control": "public, max-age=31536000, immutable" },
+        });
+      }
     }
 
     if (url.pathname === "/ws") {

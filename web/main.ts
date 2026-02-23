@@ -5,6 +5,7 @@ import { TerminalClient } from "./terminal-client.ts";
 import { UIControls } from "./ui-controls.ts";
 
 const DEFAULT_FONT_SIZE = 14;
+const DEFAULT_FONT_FAMILY = '"M PLUS 1 Code Variable", "Symbols Nerd Font Mono", monospace';
 
 function createControlsToolbar(controls: UIControls): HTMLElement {
   const toolbar = document.createElement("div");
@@ -64,9 +65,27 @@ function createControlsToolbar(controls: UIControls): HTMLElement {
   return toolbar;
 }
 
+function loadFontCss(): Promise<void> {
+  return new Promise((resolve) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "/fonts.css";
+    link.onload = () => {
+      document.fonts
+        .load(`14px ${DEFAULT_FONT_FAMILY}`)
+        .then(() => resolve())
+        .catch(() => resolve());
+    };
+    link.onerror = () => resolve();
+    document.head.appendChild(link);
+  });
+}
+
 async function main() {
   const container = document.getElementById("terminal");
   if (!container) throw new Error("Terminal container element not found");
+
+  await loadFontCss();
 
   const params = new URLSearchParams(window.location.search);
   const token = params.get("t");
@@ -75,7 +94,10 @@ async function main() {
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${wsProtocol}//${window.location.host}/ws?t=${token}`;
 
-  const terminalOptions: Record<string, unknown> = { fontSize: DEFAULT_FONT_SIZE };
+  const terminalOptions: Record<string, unknown> = {
+    fontSize: DEFAULT_FONT_SIZE,
+    fontFamily: DEFAULT_FONT_FAMILY,
+  };
   const fontFamily = params.get("fontFamily");
   if (fontFamily) {
     terminalOptions.fontFamily = fontFamily;
