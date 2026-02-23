@@ -75,6 +75,12 @@ export class TerminalClient {
     }
   }
 
+  sendReadonly(enabled: boolean): void {
+    if (this.ws && this.state === "connected") {
+      this.ws.send(JSON.stringify({ t: "readonly", enabled }));
+    }
+  }
+
   private setState(newState: ConnectionState): void {
     if (this.state === newState) return;
     this.state = newState;
