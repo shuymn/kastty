@@ -7,7 +7,8 @@
     "lint": "biome lint .",
     "lint:fix": "biome lint --fix .",
     "fmt": "biome format --fix .",
-    "check": "biome check --fix . && bun test"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web",
+    "check": "biome check --fix . && bun run typecheck && bun test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",
