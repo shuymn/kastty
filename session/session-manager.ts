@@ -49,6 +49,10 @@ export class SessionManager {
     this.pty.resize(cols, rows);
   }
 
+  isReadonly(): boolean {
+    return this.readonlyMode;
+  }
+
   setReadonly(enabled: boolean): void {
     this.readonlyMode = enabled;
   }
