@@ -3,13 +3,17 @@ import { parseClientMessage } from "../protocol/messages.ts";
 import { isValidToken, validateRequest } from "../security/middleware.ts";
 import type { ClientConnection, SessionManager } from "../session/session-manager.ts";
 
+export interface StaticAsset {
+  body: string | ArrayBuffer;
+  contentType: string;
+  cacheControl?: string;
+}
+
 export interface ServerOptions {
   session: SessionManager;
   token: string;
   port: number;
-  wasmBuffer?: ArrayBuffer;
-  fontCss?: string;
-  fontFiles?: Map<string, ArrayBuffer>;
+  assets?: Map<string, StaticAsset>;
 }
 
 function toArrayBuffer(data: Uint8Array): ArrayBuffer {
@@ -33,26 +37,11 @@ export function createServer(options: ServerOptions) {
 
     const url = new URL(req.url);
 
-    if (url.pathname === "/ghostty-vt.wasm" && options.wasmBuffer) {
-      return new Response(options.wasmBuffer, {
-        headers: { "Content-Type": "application/wasm" },
-      });
-    }
-
-    if (url.pathname === "/fonts.css" && options.fontCss) {
-      return new Response(options.fontCss, {
-        headers: { "Content-Type": "text/css; charset=utf-8", "Cache-Control": "public, max-age=31536000, immutable" },
-      });
-    }
-
-    if (url.pathname.startsWith("/fonts/") && options.fontFiles) {
-      const name = url.pathname.slice("/fonts/".length);
-      const buf = options.fontFiles.get(name);
-      if (buf) {
-        return new Response(buf, {
-          headers: { "Content-Type": "font/woff2", "Cache-Control": "public, max-age=31536000, immutable" },
-        });
-      }
+    const asset = options.assets?.get(url.pathname);
+    if (asset) {
+      const headers: Record<string, string> = { "Content-Type": asset.contentType };
+      if (asset.cacheControl) headers["Cache-Control"] = asset.cacheControl;
+      return new Response(asset.body, { headers });
     }
 
     if (url.pathname === "/ws") {

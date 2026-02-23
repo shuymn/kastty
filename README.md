@@ -10,6 +10,7 @@ The name combines "cast" and "tty", with a nod to 「彁（ka）」— a ghost k
 - **Localhost-only** -- binds to `127.0.0.1` with token-based authentication
 - **Readonly mode** -- share your terminal without allowing input
 - **Replay buffer** -- new connections receive recent terminal history
+- **Bundled fonts** -- ships with [M PLUS 1 Code](https://fonts.google.com/specimen/M+PLUS+1+Code) and [Nerd Fonts Symbols](https://www.nerdfonts.com/) for consistent CJK and icon rendering across environments
 - **Font customization** -- adjustable font size and family
 - **Single dependency runtime** -- runs entirely on [Bun](https://bun.sh)
 

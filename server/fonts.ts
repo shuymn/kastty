@@ -1,4 +1,6 @@
 import { dirname, join } from "node:path";
+// @ts-expect-error -- Bun resolves this to an embedded asset path at compile time
+import nerdFontEmbedded from "../web/fonts/SymbolsNerdFontMono-Regular.woff2" with { type: "file" };
 
 export interface FontAssets {
   css: string;
@@ -29,8 +31,6 @@ export async function loadFontAssets(): Promise<FontAssets> {
     filenames.add(match[1] as string);
   }
 
-  const nerdFontPath = join(import.meta.dir, "..", "web", "fonts", NERD_FONT_FILENAME);
-
   const files = new Map<string, ArrayBuffer>();
   await Promise.all([
     ...[...filenames].map(async (name) => {
@@ -38,8 +38,7 @@ export async function loadFontAssets(): Promise<FontAssets> {
       files.set(name, buf);
     }),
     (async () => {
-      const buf = await Bun.file(nerdFontPath).arrayBuffer();
-      files.set(NERD_FONT_FILENAME, buf);
+      files.set(NERD_FONT_FILENAME, await Bun.file(nerdFontEmbedded).arrayBuffer());
     })(),
   ]);
 

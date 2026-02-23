@@ -2,7 +2,7 @@ import { dirname, join } from "node:path";
 import { ReplayBuffer } from "../buffer/replay-buffer.ts";
 import { BunPtyAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
-import { createServer } from "../server/app.ts";
+import { createServer, type StaticAsset } from "../server/app.ts";
 import { loadFontAssets } from "../server/fonts.ts";
 import { SessionManager } from "../session/session-manager.ts";
 import homepage from "../web/index.html";
@@ -54,14 +54,20 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
 
   const port = resolvePort(options.port);
   const [wasmBuffer, fontAssets] = await Promise.all([loadWasm(), loadFontAssets()]);
-  const { fetch: appFetch, websocket } = createServer({
-    session,
-    token,
-    port,
-    wasmBuffer,
-    fontCss: fontAssets.css,
-    fontFiles: fontAssets.files,
+
+  const immutableCache = "public, max-age=31536000, immutable";
+  const assets = new Map<string, StaticAsset>();
+  assets.set("/ghostty-vt.wasm", { body: wasmBuffer, contentType: "application/wasm", cacheControl: immutableCache });
+  assets.set("/fonts.css", {
+    body: fontAssets.css,
+    contentType: "text/css; charset=utf-8",
+    cacheControl: immutableCache,
   });
+  for (const [name, buf] of fontAssets.files) {
+    assets.set(`/fonts/${name}`, { body: buf, contentType: "font/woff2", cacheControl: immutableCache });
+  }
+
+  const { fetch: appFetch, websocket } = createServer({ session, token, port, assets });
 
   const server = Bun.serve({
     routes: {
