@@ -8,6 +8,7 @@
     "lint:fix": "biome lint --fix .",
     "fmt": "biome format --fix .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web",
+    "build": "bun build --compile index.ts --outfile kastty",
     "check": "biome check --fix . && bun run typecheck && bun test"
   },
   "devDependencies": {
