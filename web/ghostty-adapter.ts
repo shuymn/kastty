@@ -7,6 +7,8 @@ export interface GhosttyTerminalInstance {
   onResize: (listener: (event: { cols: number; rows: number }) => void) => { dispose(): void };
   dispose(): void;
   focus(): void;
+  scrollToBottom(): void;
+  options: { fontSize: number };
 }
 
 export interface GhosttyModule {
@@ -19,6 +21,8 @@ export interface GhosttyAdapterResult {
   onData(callback: (data: string) => void): { dispose(): void };
   onResize(callback: (cols: number, rows: number) => void): { dispose(): void };
   focus(): void;
+  setFontSize(size: number): void;
+  scrollToBottom(): void;
 }
 
 export async function createGhosttyTerminal(
@@ -47,6 +51,12 @@ export async function createGhosttyTerminal(
     },
     focus() {
       terminal.focus();
+    },
+    setFontSize(size: number) {
+      terminal.options.fontSize = size;
+    },
+    scrollToBottom() {
+      terminal.scrollToBottom();
     },
   };
 }

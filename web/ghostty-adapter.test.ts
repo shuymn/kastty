@@ -6,6 +6,7 @@ function setup() {
   const writeMock = mock((_data: string | Uint8Array) => {});
   const disposeMock = mock(() => {});
   const focusMock = mock(() => {});
+  const scrollToBottomMock = mock(() => {});
 
   let dataCallback: ((data: string) => void) | null = null;
   let resizeCallback: ((event: { cols: number; rows: number }) => void) | null = null;
@@ -31,6 +32,8 @@ function setup() {
     },
     dispose: disposeMock,
     focus: focusMock,
+    scrollToBottom: scrollToBottomMock,
+    options: { fontSize: 14 },
   };
 
   const initMock = mock(() => Promise.resolve());
@@ -50,6 +53,7 @@ function setup() {
       write: writeMock,
       dispose: disposeMock,
       focus: focusMock,
+      scrollToBottom: scrollToBottomMock,
     },
     fireData(data: string) {
       dataCallback?.(data);
