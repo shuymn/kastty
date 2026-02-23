@@ -1,5 +1,5 @@
 import { describe, expect, it, mock } from "bun:test";
-import { createGhosttyTerminal, type GhosttyModule } from "./ghostty-adapter.ts";
+import { createGhosttyTerminal, type GhosttyModule, quoteFontFamily } from "./ghostty-adapter.ts";
 
 function setup() {
   const openMock = mock((_parent: HTMLElement) => {});
@@ -80,13 +80,13 @@ describe("createGhosttyTerminal", () => {
     expect(mocks.open).toHaveBeenCalledWith(container);
   });
 
-  it("passes options to createTerminal", async () => {
+  it("passes options to createTerminal with quoted fontFamily", async () => {
     const { ghostty, mocks } = setup();
     const options = { fontSize: 16, fontFamily: "monospace" };
 
     await createGhosttyTerminal({} as HTMLElement, ghostty, options);
 
-    expect(mocks.createTerminal).toHaveBeenCalledWith(options);
+    expect(mocks.createTerminal).toHaveBeenCalledWith({ fontSize: 16, fontFamily: '"monospace"' });
   });
 
   it("handle.write delegates to terminal.write", async () => {
@@ -139,5 +139,23 @@ describe("createGhosttyTerminal", () => {
     focus();
 
     expect(mocks.focus).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("quoteFontFamily", () => {
+  it("wraps an unquoted name in double quotes", () => {
+    expect(quoteFontFamily("UDEV Gothic 35NF")).toBe('"UDEV Gothic 35NF"');
+  });
+
+  it("does not double-quote an already double-quoted name", () => {
+    expect(quoteFontFamily('"Fira Code"')).toBe('"Fira Code"');
+  });
+
+  it("does not double-quote an already single-quoted name", () => {
+    expect(quoteFontFamily("'Fira Code'")).toBe("'Fira Code'");
+  });
+
+  it("wraps a simple name in double quotes", () => {
+    expect(quoteFontFamily("monospace")).toBe('"monospace"');
   });
 });

@@ -1,5 +1,17 @@
 import type { TerminalHandle } from "./terminal.ts";
 
+/**
+ * Wrap a font-family name in double-quotes so it is always valid in a CSS
+ * font shorthand (e.g. `ctx.font = "14px …"`).  Unquoted family names that
+ * contain tokens starting with a digit (like "UDEV Gothic 35NF") are rejected
+ * by the CSS parser.  ghostty-web currently does not quote the name itself, so
+ * we do it here as a workaround.
+ */
+export function quoteFontFamily(family: string): string {
+  if (family.startsWith('"') || family.startsWith("'")) return family;
+  return `"${family}"`;
+}
+
 export interface GhosttyTerminalAddon {
   activate(terminal: unknown): void;
   dispose(): void;
@@ -39,7 +51,13 @@ export async function createGhosttyTerminal(
   options?: Record<string, unknown>,
 ): Promise<GhosttyAdapterResult> {
   await ghostty.init();
-  const terminal = ghostty.createTerminal(options);
+
+  const resolvedOptions = options ? { ...options } : undefined;
+  if (resolvedOptions?.fontFamily && typeof resolvedOptions.fontFamily === "string") {
+    resolvedOptions.fontFamily = quoteFontFamily(resolvedOptions.fontFamily);
+  }
+
+  const terminal = ghostty.createTerminal(resolvedOptions);
   terminal.open(container);
 
   return {
@@ -67,7 +85,7 @@ export async function createGhosttyTerminal(
       terminal.options.fontSize = size;
     },
     setFontFamily(family: string) {
-      terminal.options.fontFamily = family;
+      terminal.options.fontFamily = quoteFontFamily(family);
     },
     scrollToBottom() {
       terminal.scrollToBottom();
