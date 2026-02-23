@@ -14,7 +14,7 @@ export interface GhosttyTerminalInstance {
   dispose(): void;
   focus(): void;
   scrollToBottom(): void;
-  options: { fontSize: number };
+  options: { fontSize: number; fontFamily?: string };
 }
 
 export interface GhosttyModule {
@@ -29,6 +29,7 @@ export interface GhosttyAdapterResult {
   loadAddon(addon: GhosttyTerminalAddon): void;
   focus(): void;
   setFontSize(size: number): void;
+  setFontFamily(family: string): void;
   scrollToBottom(): void;
 }
 
@@ -64,6 +65,9 @@ export async function createGhosttyTerminal(
     },
     setFontSize(size: number) {
       terminal.options.fontSize = size;
+    },
+    setFontFamily(family: string) {
+      terminal.options.fontFamily = family;
     },
     scrollToBottom() {
       terminal.scrollToBottom();

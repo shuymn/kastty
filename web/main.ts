@@ -68,16 +68,23 @@ async function main() {
   const container = document.getElementById("terminal");
   if (!container) throw new Error("Terminal container element not found");
 
-  const token = new URLSearchParams(window.location.search).get("t");
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get("t");
   if (!token) throw new Error("Authentication token not found in URL");
 
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${wsProtocol}//${window.location.host}/ws?t=${token}`;
 
+  const terminalOptions: Record<string, unknown> = { fontSize: DEFAULT_FONT_SIZE };
+  const fontFamily = params.get("fontFamily");
+  if (fontFamily) {
+    terminalOptions.fontFamily = fontFamily;
+  }
+
   const { handle, onData, onResize, loadAddon, focus, setFontSize, scrollToBottom } = await createGhosttyTerminal(
     container,
     { init, createTerminal: (opts) => new Terminal(opts) },
-    { fontSize: DEFAULT_FONT_SIZE },
+    terminalOptions,
   );
 
   let client: TerminalClient | null = null;
