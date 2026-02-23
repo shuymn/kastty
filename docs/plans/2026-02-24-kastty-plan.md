@@ -3,7 +3,7 @@
 **Design Doc**: docs/plans/2026-02-24-kastty-design.md
 **Trace Pack**: docs/plans/2026-02-24-kastty-plan.trace.md
 **Compose Pack**: docs/plans/2026-02-24-kastty-plan.compose.md
-**Test Runner**: `bun test`
+**Test Runner**: `bun run check`
 
 ---
 
@@ -55,7 +55,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - All control message types have corresponding TS types and runtime validators
 - Invalid payloads produce typed errors
 - No Bun/Hono-specific imports in `protocol/`
-- `bun test` passes
+- `bun run check` passes
 
 ---
 
@@ -86,7 +86,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - PTY spawns with correct TERM and initial size
 - Resize, write, data output, exit detection all work
 - All Bun-specific API calls are confined to `pty/`
-- `bun test` passes
+- `bun run check` passes
 
 ---
 
@@ -116,7 +116,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 **DoD**:
 - Ring buffer correctly stores and retrieves data with FIFO eviction
 - Default capacity is 1 MB
-- `bun test` passes
+- `bun run check` passes
 
 ---
 
@@ -153,7 +153,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - Readonly server-side guard works (AC06 partial)
 - PTY survives client disconnect (AC10 partial)
 - PTY exit notifies consumers (AC09)
-- `bun test` passes
+- `bun run check` passes
 
 ---
 
@@ -187,7 +187,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - All three validations (Host, Origin, Token) reject invalid requests (AC05)
 - Token has high entropy
 - Log output masks token values
-- `bun test` passes
+- `bun run check` passes
 
 ---
 
@@ -226,7 +226,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - WS connection established with protocol handshake
 - Input/output flows through WS ↔ PTY (AC02, AC03 partial)
 - Resize messages update PTY dimensions
-- `bun test` passes
+- `bun run check` passes
 
 ---
 
@@ -264,7 +264,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - Keyboard input reaches server (AC02)
 - Resize propagates to server (AC03)
 - Replay data restores screen on reconnection (AC10 client side)
-- `bun test` passes (unit tests for non-WASM logic; WASM integration verified manually)
+- `bun run check` passes (unit tests for non-WASM logic; WASM integration verified manually)
 
 ---
 
@@ -296,7 +296,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - Font size changes are immediate (AC07)
 - Readonly blocks input at UI and server (AC06)
 - Auto-scroll toggles correctly (AC08)
-- `bun test` passes
+- `bun run check` passes
 
 ---
 
@@ -334,7 +334,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - `kastty` starts shell in browser with one command (AC01)
 - Bind is `127.0.0.1` only (AC05 partial)
 - Process blocks and exits correctly (AC11)
-- `bun test` passes
+- `bun run check` passes
 
 ---
 
