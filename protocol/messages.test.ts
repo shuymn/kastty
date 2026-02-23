@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import {
+  type ClientMessage,
+  ProtocolError,
   parseClientMessage,
   parseServerMessage,
-  ProtocolError,
-  type ClientMessage,
   type ServerMessage,
 } from "./messages.ts";
 
@@ -15,27 +15,19 @@ describe("parseClientMessage", () => {
     });
 
     it("rejects resize with missing cols", () => {
-      expect(() =>
-        parseClientMessage('{"t":"resize","rows":40}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"t":"resize","rows":40}')).toThrow(ProtocolError);
     });
 
     it("rejects resize with missing rows", () => {
-      expect(() =>
-        parseClientMessage('{"t":"resize","cols":120}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"t":"resize","cols":120}')).toThrow(ProtocolError);
     });
 
     it("rejects resize with non-integer cols", () => {
-      expect(() =>
-        parseClientMessage('{"t":"resize","cols":"wide","rows":40}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"t":"resize","cols":"wide","rows":40}')).toThrow(ProtocolError);
     });
 
     it("rejects resize with non-integer rows", () => {
-      expect(() =>
-        parseClientMessage('{"t":"resize","cols":120,"rows":true}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"t":"resize","cols":120,"rows":true}')).toThrow(ProtocolError);
     });
   });
 
@@ -51,15 +43,11 @@ describe("parseClientMessage", () => {
     });
 
     it("rejects readonly with missing enabled", () => {
-      expect(() =>
-        parseClientMessage('{"t":"readonly"}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"t":"readonly"}')).toThrow(ProtocolError);
     });
 
     it("rejects readonly with non-boolean enabled", () => {
-      expect(() =>
-        parseClientMessage('{"t":"readonly","enabled":"yes"}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"t":"readonly","enabled":"yes"}')).toThrow(ProtocolError);
     });
   });
 
@@ -74,9 +62,7 @@ describe("parseClientMessage", () => {
     });
 
     it("rejects ping with non-number ts", () => {
-      expect(() =>
-        parseClientMessage('{"t":"ping","ts":"now"}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"t":"ping","ts":"now"}')).toThrow(ProtocolError);
     });
   });
 
@@ -109,15 +95,11 @@ describe("parseClientMessage", () => {
 
   describe("invalid payloads", () => {
     it("rejects unknown message type", () => {
-      expect(() =>
-        parseClientMessage('{"t":"unknown","data":1}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"t":"unknown","data":1}')).toThrow(ProtocolError);
     });
 
     it("rejects message with no t field", () => {
-      expect(() =>
-        parseClientMessage('{"cols":120,"rows":40}')
-      ).toThrow(ProtocolError);
+      expect(() => parseClientMessage('{"cols":120,"rows":40}')).toThrow(ProtocolError);
     });
 
     it("rejects invalid JSON", () => {
@@ -129,9 +111,7 @@ describe("parseClientMessage", () => {
     });
 
     it("strips unknown properties", () => {
-      const msg = parseClientMessage(
-        '{"t":"resize","cols":80,"rows":24,"extra":"field"}'
-      );
+      const msg = parseClientMessage('{"t":"resize","cols":80,"rows":24,"extra":"field"}');
       expect(msg).toEqual({ t: "resize", cols: 80, rows: 24 });
       expect((msg as Record<string, unknown>)["extra"]).toBeUndefined();
     });
@@ -171,17 +151,13 @@ describe("parseServerMessage", () => {
     });
 
     it("rejects exit with non-number code", () => {
-      expect(() =>
-        parseServerMessage('{"t":"exit","code":"zero"}')
-      ).toThrow(ProtocolError);
+      expect(() => parseServerMessage('{"t":"exit","code":"zero"}')).toThrow(ProtocolError);
     });
   });
 
   describe("error", () => {
     it("parses a valid error message", () => {
-      const msg = parseServerMessage(
-        '{"t":"error","message":"connection refused"}'
-      );
+      const msg = parseServerMessage('{"t":"error","message":"connection refused"}');
       expect(msg).toEqual({ t: "error", message: "connection refused" });
     });
 
@@ -190,9 +166,7 @@ describe("parseServerMessage", () => {
     });
 
     it("rejects error with non-string message", () => {
-      expect(() =>
-        parseServerMessage('{"t":"error","message":42}')
-      ).toThrow(ProtocolError);
+      expect(() => parseServerMessage('{"t":"error","message":42}')).toThrow(ProtocolError);
     });
   });
 
@@ -207,9 +181,7 @@ describe("parseServerMessage", () => {
     });
 
     it("rejects pong with non-number ts", () => {
-      expect(() =>
-        parseServerMessage('{"t":"pong","ts":"now"}')
-      ).toThrow(ProtocolError);
+      expect(() => parseServerMessage('{"t":"pong","ts":"now"}')).toThrow(ProtocolError);
     });
   });
 
@@ -231,9 +203,7 @@ describe("parseServerMessage", () => {
     });
 
     it("routes error to ErrorMessage", () => {
-      const msg = parseServerMessage(
-        '{"t":"error","message":"fail"}'
-      );
+      const msg = parseServerMessage('{"t":"error","message":"fail"}');
       expect(msg.t).toBe("error");
       if (msg.t === "error") {
         expect(msg.message).toBe("fail");
@@ -251,15 +221,11 @@ describe("parseServerMessage", () => {
 
   describe("invalid payloads", () => {
     it("rejects unknown message type", () => {
-      expect(() =>
-        parseServerMessage('{"t":"unknown","data":1}')
-      ).toThrow(ProtocolError);
+      expect(() => parseServerMessage('{"t":"unknown","data":1}')).toThrow(ProtocolError);
     });
 
     it("rejects message with no t field", () => {
-      expect(() =>
-        parseServerMessage('{"code":0}')
-      ).toThrow(ProtocolError);
+      expect(() => parseServerMessage('{"code":0}')).toThrow(ProtocolError);
     });
 
     it("rejects invalid JSON", () => {
@@ -271,9 +237,7 @@ describe("parseServerMessage", () => {
     });
 
     it("strips unknown properties", () => {
-      const msg = parseServerMessage(
-        '{"t":"exit","code":0,"extra":"field"}'
-      );
+      const msg = parseServerMessage('{"t":"exit","code":0,"extra":"field"}');
       expect(msg).toEqual({ t: "exit", code: 0 });
       expect((msg as Record<string, unknown>)["extra"]).toBeUndefined();
     });

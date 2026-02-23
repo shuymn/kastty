@@ -20,11 +20,7 @@ const PingMessageSchema = z.object({
   ts: z.number(),
 });
 
-const ClientMessageSchema = z.discriminatedUnion("t", [
-  ResizeMessageSchema,
-  ReadonlyMessageSchema,
-  PingMessageSchema,
-]);
+const ClientMessageSchema = z.discriminatedUnion("t", [ResizeMessageSchema, ReadonlyMessageSchema, PingMessageSchema]);
 
 const HelloMessageSchema = z.object({
   t: z.literal("hello"),
@@ -66,11 +62,7 @@ export type PongMessage = z.infer<typeof PongMessageSchema>;
 
 export type ServerMessage = z.infer<typeof ServerMessageSchema>;
 
-function parseMessage<T>(
-  json: string,
-  schema: z.ZodType<T>,
-  label: string
-): T {
+function parseMessage<T>(json: string, schema: z.ZodType<T>, label: string): T {
   let data: unknown;
   try {
     data = JSON.parse(json);
@@ -79,9 +71,7 @@ function parseMessage<T>(
   }
   const result = schema.safeParse(data);
   if (!result.success) {
-    throw new ProtocolError(
-      `Invalid ${label} message: ${z.prettifyError(result.error)}`
-    );
+    throw new ProtocolError(`Invalid ${label} message: ${z.prettifyError(result.error)}`);
   }
   return result.data;
 }
