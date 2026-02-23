@@ -3,8 +3,18 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "lint": "biome lint .",
+    "lint:fix": "biome lint --fix .",
+    "fmt": "biome format --fix .",
+    "check": "biome check --fix . && bun test"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@biomejs/biome": "^2.4.4",
+    "@commitlint/cli": "^20.4.2",
+    "@commitlint/config-conventional": "^20.4.2",
+    "@types/bun": "latest",
+    "lefthook": "^2.1.1"
   },
   "peerDependencies": {
     "typescript": "^5"
