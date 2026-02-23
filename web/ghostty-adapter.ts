@@ -1,10 +1,16 @@
 import type { TerminalHandle } from "./terminal.ts";
 
+export interface GhosttyTerminalAddon {
+  activate(terminal: unknown): void;
+  dispose(): void;
+}
+
 export interface GhosttyTerminalInstance {
   open(parent: HTMLElement): void;
   write(data: string | Uint8Array): void;
   onData: (listener: (data: string) => void) => { dispose(): void };
   onResize: (listener: (event: { cols: number; rows: number }) => void) => { dispose(): void };
+  loadAddon(addon: GhosttyTerminalAddon): void;
   dispose(): void;
   focus(): void;
   scrollToBottom(): void;
@@ -20,6 +26,7 @@ export interface GhosttyAdapterResult {
   handle: TerminalHandle;
   onData(callback: (data: string) => void): { dispose(): void };
   onResize(callback: (cols: number, rows: number) => void): { dispose(): void };
+  loadAddon(addon: GhosttyTerminalAddon): void;
   focus(): void;
   setFontSize(size: number): void;
   scrollToBottom(): void;
@@ -48,6 +55,9 @@ export async function createGhosttyTerminal(
     },
     onResize(callback) {
       return terminal.onResize(({ cols, rows }) => callback(cols, rows));
+    },
+    loadAddon(addon: GhosttyTerminalAddon) {
+      terminal.loadAddon(addon);
     },
     focus() {
       terminal.focus();

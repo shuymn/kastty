@@ -1,4 +1,4 @@
-import { init, Terminal } from "ghostty-web";
+import { FitAddon, init, Terminal } from "ghostty-web";
 import { createGhosttyTerminal } from "./ghostty-adapter.ts";
 import type { TerminalHandle } from "./terminal.ts";
 import { TerminalClient } from "./terminal-client.ts";
@@ -74,11 +74,16 @@ async function main() {
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${wsProtocol}//${window.location.host}/ws?t=${token}`;
 
-  const { handle, onData, onResize, focus, setFontSize, scrollToBottom } = await createGhosttyTerminal(
+  const { handle, onData, onResize, loadAddon, focus, setFontSize, scrollToBottom } = await createGhosttyTerminal(
     container,
     { init, createTerminal: (opts) => new Terminal(opts) },
     { fontSize: DEFAULT_FONT_SIZE },
   );
+
+  const fitAddon = new FitAddon();
+  loadAddon(fitAddon);
+  fitAddon.fit();
+  fitAddon.observeResize();
 
   let client: TerminalClient | null = null;
 

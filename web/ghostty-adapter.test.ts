@@ -11,6 +11,8 @@ function setup() {
   let dataCallback: ((data: string) => void) | null = null;
   let resizeCallback: ((event: { cols: number; rows: number }) => void) | null = null;
 
+  const loadAddonMock = mock((_addon: { activate(terminal: unknown): void; dispose(): void }) => {});
+
   const terminal = {
     open: openMock,
     write: writeMock,
@@ -30,6 +32,7 @@ function setup() {
         },
       };
     },
+    loadAddon: loadAddonMock,
     dispose: disposeMock,
     focus: focusMock,
     scrollToBottom: scrollToBottomMock,
@@ -51,6 +54,7 @@ function setup() {
       createTerminal: createTerminalMock,
       open: openMock,
       write: writeMock,
+      loadAddon: loadAddonMock,
       dispose: disposeMock,
       focus: focusMock,
       scrollToBottom: scrollToBottomMock,
