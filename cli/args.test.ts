@@ -36,4 +36,14 @@ describe("parseCliArgs", () => {
     expect(opts.port).toBe(0);
     expect(opts.open).toBe(true);
   });
+
+  test("--font-family sets terminal font family", () => {
+    const opts = parseCliArgs(["--font-family", "JetBrains Mono"]);
+    expect(opts.fontFamily).toBe("JetBrains Mono");
+  });
+
+  test("defaults to empty fontFamily", () => {
+    const opts = parseCliArgs([]);
+    expect(opts.fontFamily).toBe("");
+  });
 });

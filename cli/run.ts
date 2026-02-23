@@ -66,7 +66,11 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
   });
 
   const actualPort = server.port ?? port;
-  const url = `http://127.0.0.1:${actualPort}/?t=${token}`;
+  const params = new URLSearchParams({ t: token });
+  if (options.fontFamily) {
+    params.set("fontFamily", options.fontFamily);
+  }
+  const url = `http://127.0.0.1:${actualPort}/?${params}`;
   console.log(url);
 
   deps?.onReady?.({ url, port: actualPort, token });

@@ -6,6 +6,7 @@ export interface CliOptions {
   readonly: boolean;
   port: number;
   open: boolean;
+  fontFamily: string;
 }
 
 function defaultShell(): string {
@@ -30,6 +31,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     options: {
       readonly: { type: "boolean", default: false },
       port: { type: "string", default: "0" },
+      "font-family": { type: "string", default: "" },
     },
     allowPositionals: true,
     strict: false,
@@ -53,5 +55,6 @@ export function parseCliArgs(argv: string[]): CliOptions {
     readonly: Boolean(values.readonly),
     port: Number.parseInt(values.port as string, 10),
     open: openOverride ?? true,
+    fontFamily: (values["font-family"] as string) || "",
   };
 }

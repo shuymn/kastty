@@ -30,6 +30,7 @@ function defaultOptions(overrides?: Partial<CliOptions>): CliOptions {
     readonly: false,
     port: 0,
     open: false,
+    fontFamily: "",
     ...overrides,
   };
 }
