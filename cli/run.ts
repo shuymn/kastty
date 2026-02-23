@@ -1,6 +1,6 @@
 import { dirname, join } from "node:path";
 import { ReplayBuffer } from "../buffer/replay-buffer.ts";
-import { BunTerminalAdapter, type PtyAdapter } from "../pty/adapter.ts";
+import { BunPtyAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
 import { createServer } from "../server/app.ts";
 import { SessionManager } from "../session/session-manager.ts";
@@ -42,7 +42,7 @@ function resolvePort(requested: number): number {
 }
 
 export async function run(options: CliOptions, deps?: RunDeps): Promise<number> {
-  const pty = deps?.createPty?.() ?? new BunTerminalAdapter();
+  const pty = deps?.createPty?.() ?? new BunPtyAdapter();
   const replayBuffer = new ReplayBuffer();
   const session = new SessionManager(pty, replayBuffer);
   const token = generateToken();

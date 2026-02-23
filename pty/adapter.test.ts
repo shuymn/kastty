@@ -1,15 +1,15 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { BunTerminalAdapter } from "./adapter.ts";
+import { BunPtyAdapter } from "./adapter.ts";
 
-describe("BunTerminalAdapter", () => {
-  let adapter: BunTerminalAdapter;
+describe("BunPtyAdapter", () => {
+  let adapter: BunPtyAdapter;
 
   afterEach(() => {
     adapter?.destroy();
   });
 
   it("starts with TERM=xterm-256color and initial size 80×24", async () => {
-    adapter = new BunTerminalAdapter();
+    adapter = new BunPtyAdapter();
 
     const output: string[] = [];
     const done = new Promise<void>((resolve) => {
@@ -27,7 +27,7 @@ describe("BunTerminalAdapter", () => {
   });
 
   it("can be resized to arbitrary cols/rows", async () => {
-    adapter = new BunTerminalAdapter();
+    adapter = new BunPtyAdapter();
 
     const output: string[] = [];
     adapter.onData((data: Uint8Array) => output.push(new TextDecoder().decode(data)));
@@ -48,7 +48,7 @@ describe("BunTerminalAdapter", () => {
   });
 
   it("forwards written data to the spawned process", async () => {
-    adapter = new BunTerminalAdapter();
+    adapter = new BunPtyAdapter();
 
     const output: string[] = [];
     adapter.onData((data: Uint8Array) => output.push(new TextDecoder().decode(data)));
@@ -65,7 +65,7 @@ describe("BunTerminalAdapter", () => {
   });
 
   it("emits PTY output via onData callback", async () => {
-    adapter = new BunTerminalAdapter();
+    adapter = new BunPtyAdapter();
 
     const output: string[] = [];
     const done = new Promise<void>((resolve) => {
@@ -82,7 +82,7 @@ describe("BunTerminalAdapter", () => {
   });
 
   it("triggers exit callback with process exit code", async () => {
-    adapter = new BunTerminalAdapter();
+    adapter = new BunPtyAdapter();
     adapter.onData(() => {});
 
     const exitCode = await new Promise<number>((resolve) => {

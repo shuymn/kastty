@@ -1,4 +1,4 @@
-import type { Subprocess } from "bun";
+import { spawn as ptySpawn } from "bun-pty";
 
 export interface PtyAdapter {
   onData(callback: (data: Uint8Array) => void): void;
@@ -9,11 +9,11 @@ export interface PtyAdapter {
   destroy(): void;
 }
 
-export class BunTerminalAdapter implements PtyAdapter {
-  private terminal: InstanceType<typeof Bun.Terminal> | null = null;
-  private process: Subprocess | null = null;
+export class BunPtyAdapter implements PtyAdapter {
+  private ptyProcess: ReturnType<typeof ptySpawn> | null = null;
   private dataCallback: ((data: Uint8Array) => void) | null = null;
   private exitCallback: ((exitCode: number) => void) | null = null;
+  private encoder = new TextEncoder();
 
   onData(callback: (data: Uint8Array) => void): void {
     this.dataCallback = callback;
@@ -24,41 +24,39 @@ export class BunTerminalAdapter implements PtyAdapter {
   }
 
   start(command: string, args: string[] = [], env?: Record<string, string>): void {
-    this.terminal = new Bun.Terminal({
+    this.ptyProcess = ptySpawn(command, args, {
+      name: "xterm-256color",
       cols: 80,
       rows: 24,
-      name: "xterm-256color",
-      data: (_terminal, data) => {
-        this.dataCallback?.(data);
-      },
-    });
-
-    this.process = Bun.spawn([command, ...args], {
-      terminal: this.terminal,
       env: {
         ...process.env,
         TERM: "xterm-256color",
         ...env,
-      },
+      } as Record<string, string>,
     });
 
-    this.process.exited.then((exitCode) => {
+    this.ptyProcess.onData((data: string) => {
+      const bytes = this.encoder.encode(data);
+      this.dataCallback?.(bytes);
+    });
+
+    this.ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
       this.exitCallback?.(exitCode);
     });
   }
 
   resize(cols: number, rows: number): void {
-    this.terminal?.resize(cols, rows);
+    this.ptyProcess?.resize(cols, rows);
   }
 
   write(data: string | Uint8Array): void {
-    this.terminal?.write(data);
+    if (!this.ptyProcess) return;
+    const str = typeof data === "string" ? data : new TextDecoder().decode(data);
+    this.ptyProcess.write(str);
   }
 
   destroy(): void {
-    this.process?.kill();
-    this.terminal?.close();
-    this.terminal = null;
-    this.process = null;
+    this.ptyProcess?.kill();
+    this.ptyProcess = null;
   }
 }
