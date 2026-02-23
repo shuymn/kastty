@@ -21,7 +21,8 @@ export function createApp(options: ServerOptions) {
 
   app.use(hostValidation(options.port));
   app.use(originValidation(options.port));
-  app.use(tokenValidation(options.token));
+  app.use("/", tokenValidation(options.token));
+  app.use("/ws", tokenValidation(options.token));
 
   let currentWs: WSContext | null = null;
 

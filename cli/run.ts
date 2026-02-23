@@ -1,3 +1,6 @@
+import { cp, mkdtemp } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { ReplayBuffer } from "../buffer/replay-buffer.ts";
 import { BunTerminalAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
@@ -23,6 +26,29 @@ async function defaultOpenBrowser(url: string): Promise<void> {
   Bun.spawn([cmd, url], { stdout: "ignore", stderr: "ignore" });
 }
 
+async function buildFrontend(): Promise<string> {
+  const webDir = new URL("../web", import.meta.url).pathname;
+  const outDir = await mkdtemp(join(tmpdir(), "kastty-"));
+
+  const result = await Bun.build({
+    entrypoints: [join(webDir, "main.ts")],
+    outdir: outDir,
+    target: "browser",
+    format: "esm",
+  });
+
+  if (!result.success) {
+    throw new Error(`Frontend build failed: ${result.logs.join("\n")}`);
+  }
+
+  await cp(join(webDir, "index.html"), join(outDir, "index.html"));
+
+  const wasmSrc = join(dirname(require.resolve("ghostty-web")), "ghostty-vt.wasm");
+  await cp(wasmSrc, join(outDir, "ghostty-vt.wasm"));
+
+  return outDir;
+}
+
 function resolvePort(requested: number): number {
   if (requested !== 0) return requested;
   const tmp = Bun.serve({
@@ -45,7 +71,7 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
     session.setReadonly(true);
   }
 
-  const staticDir = deps?.staticDir ?? new URL("../web", import.meta.url).pathname;
+  const staticDir = deps?.staticDir ?? (await buildFrontend());
   const port = resolvePort(options.port);
 
   const { app, websocket } = createApp({ session, token, port, staticDir });
