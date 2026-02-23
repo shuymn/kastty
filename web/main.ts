@@ -80,12 +80,18 @@ async function main() {
     { fontSize: DEFAULT_FONT_SIZE },
   );
 
+  let client: TerminalClient | null = null;
+  let lastCols = 0;
+  let lastRows = 0;
+
+  onResize((cols, rows) => {
+    lastCols = cols;
+    lastRows = rows;
+    client?.sendResize(cols, rows);
+  });
+
   const fitAddon = new FitAddon();
   loadAddon(fitAddon);
-  fitAddon.fit();
-  fitAddon.observeResize();
-
-  let client: TerminalClient | null = null;
 
   const controls = new UIControls(
     {
@@ -96,6 +102,12 @@ async function main() {
     },
     DEFAULT_FONT_SIZE,
   );
+
+  const toolbar = createControlsToolbar(controls);
+  container.parentElement?.insertBefore(toolbar, container);
+
+  fitAddon.fit();
+  fitAddon.observeResize();
 
   const wrappedHandle: TerminalHandle = {
     write(data: Uint8Array) {
@@ -111,7 +123,12 @@ async function main() {
 
   client = new TerminalClient({ terminal: wrappedHandle, wsUrl });
 
-  client.onStateChange((state) => controls.setConnectionState(state));
+  client.onStateChange((state) => {
+    controls.setConnectionState(state);
+    if (state === "connected" && lastCols > 0 && lastRows > 0) {
+      client?.sendResize(lastCols, lastRows);
+    }
+  });
 
   const encoder = new TextEncoder();
   onData((data) => {
@@ -119,10 +136,6 @@ async function main() {
       client?.sendInput(encoder.encode(data));
     }
   });
-  onResize((cols, rows) => client?.sendResize(cols, rows));
-
-  const toolbar = createControlsToolbar(controls);
-  container.parentElement?.insertBefore(toolbar, container);
 
   client.connect();
   focus();
