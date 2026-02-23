@@ -1,11 +1,10 @@
-import { cp, mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { ReplayBuffer } from "../buffer/replay-buffer.ts";
 import { BunTerminalAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
-import { createApp } from "../server/app.ts";
+import { createServer } from "../server/app.ts";
 import { SessionManager } from "../session/session-manager.ts";
+import homepage from "../web/index.html";
 import type { CliOptions } from "./args.ts";
 
 export interface ReadyInfo {
@@ -17,7 +16,6 @@ export interface ReadyInfo {
 export interface RunDeps {
   createPty?: () => PtyAdapter;
   openBrowser?: (url: string) => Promise<void>;
-  staticDir?: string;
   onReady?: (info: ReadyInfo) => void;
 }
 
@@ -26,27 +24,9 @@ async function defaultOpenBrowser(url: string): Promise<void> {
   Bun.spawn([cmd, url], { stdout: "ignore", stderr: "ignore" });
 }
 
-async function buildFrontend(): Promise<string> {
-  const webDir = new URL("../web", import.meta.url).pathname;
-  const outDir = await mkdtemp(join(tmpdir(), "kastty-"));
-
-  const result = await Bun.build({
-    entrypoints: [join(webDir, "main.ts")],
-    outdir: outDir,
-    target: "browser",
-    format: "esm",
-  });
-
-  if (!result.success) {
-    throw new Error(`Frontend build failed: ${result.logs.join("\n")}`);
-  }
-
-  await cp(join(webDir, "index.html"), join(outDir, "index.html"));
-
-  const wasmSrc = join(dirname(require.resolve("ghostty-web")), "ghostty-vt.wasm");
-  await cp(wasmSrc, join(outDir, "ghostty-vt.wasm"));
-
-  return outDir;
+async function loadWasm(): Promise<ArrayBuffer> {
+  const wasmPath = join(dirname(require.resolve("ghostty-web")), "ghostty-vt.wasm");
+  return Bun.file(wasmPath).arrayBuffer();
 }
 
 function resolvePort(requested: number): number {
@@ -71,12 +51,15 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
     session.setReadonly(true);
   }
 
-  const staticDir = deps?.staticDir ?? (await buildFrontend());
   const port = resolvePort(options.port);
+  const wasmBuffer = await loadWasm();
+  const { fetch: appFetch, websocket } = createServer({ session, token, port, wasmBuffer });
 
-  const { app, websocket } = createApp({ session, token, port, staticDir });
   const server = Bun.serve({
-    fetch: app.fetch,
+    routes: {
+      "/": homepage,
+    },
+    fetch: appFetch,
     websocket,
     port,
     hostname: "127.0.0.1",

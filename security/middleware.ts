@@ -1,37 +1,23 @@
-import { createMiddleware } from "hono/factory";
+const FORBIDDEN = () => new Response("Forbidden", { status: 403 });
 
-const FORBIDDEN_RESPONSE = { status: 403 } as const;
-
-export function hostValidation(port: number) {
-  const allowed = new Set([`127.0.0.1:${port}`, `localhost:${port}`]);
-
-  return createMiddleware(async (c, next) => {
-    const host = c.req.header("host");
-    if (!host || !allowed.has(host)) {
-      return c.text("Forbidden", FORBIDDEN_RESPONSE);
-    }
-    await next();
-  });
+export function isValidHost(req: Request, port: number): boolean {
+  const host = req.headers.get("host");
+  return host === `127.0.0.1:${port}` || host === `localhost:${port}`;
 }
 
-export function originValidation(port: number) {
-  const allowed = new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]);
-
-  return createMiddleware(async (c, next) => {
-    const origin = c.req.header("origin");
-    if (origin !== undefined && !allowed.has(origin)) {
-      return c.text("Forbidden", FORBIDDEN_RESPONSE);
-    }
-    await next();
-  });
+export function isValidOrigin(req: Request, port: number): boolean {
+  const origin = req.headers.get("origin");
+  if (origin === null) return true;
+  return origin === `http://127.0.0.1:${port}` || origin === `http://localhost:${port}`;
 }
 
-export function tokenValidation(token: string) {
-  return createMiddleware(async (c, next) => {
-    const t = c.req.query("t");
-    if (t !== token) {
-      return c.text("Forbidden", FORBIDDEN_RESPONSE);
-    }
-    await next();
-  });
+export function isValidToken(req: Request, token: string): boolean {
+  const url = new URL(req.url);
+  return url.searchParams.get("t") === token;
+}
+
+export function validateRequest(req: Request, port: number): Response | null {
+  if (!isValidHost(req, port)) return FORBIDDEN();
+  if (!isValidOrigin(req, port)) return FORBIDDEN();
+  return null;
 }

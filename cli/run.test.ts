@@ -1,7 +1,4 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { describe, expect, test } from "bun:test";
 import type { PtyAdapter } from "../pty/adapter.ts";
 import type { CliOptions } from "./args.ts";
 import { type ReadyInfo, run } from "./run.ts";
@@ -26,17 +23,6 @@ class MockPtyAdapter implements PtyAdapter {
   }
 }
 
-let tmpDir: string;
-
-beforeAll(async () => {
-  tmpDir = await mkdtemp(path.join(tmpdir(), "kastty-cli-test-"));
-  await Bun.write(path.join(tmpDir, "index.html"), "<html><body>test</body></html>");
-});
-
-afterAll(async () => {
-  await rm(tmpDir, { recursive: true });
-});
-
 function defaultOptions(overrides?: Partial<CliOptions>): CliOptions {
   return {
     command: "sh",
@@ -53,7 +39,6 @@ describe("run", () => {
     const mockPty = new MockPtyAdapter();
     const runPromise = run(defaultOptions(), {
       createPty: () => mockPty,
-      staticDir: tmpDir,
     });
 
     let resolved = false;
@@ -72,7 +57,6 @@ describe("run", () => {
     const mockPty = new MockPtyAdapter();
     const runPromise = run(defaultOptions(), {
       createPty: () => mockPty,
-      staticDir: tmpDir,
     });
 
     await Bun.sleep(50);
@@ -87,7 +71,6 @@ describe("run", () => {
 
     const runPromise = run(defaultOptions({ port: 0 }), {
       createPty: () => mockPty,
-      staticDir: tmpDir,
       onReady: (info) => {
         readyInfo = info;
       },
@@ -107,7 +90,6 @@ describe("run", () => {
 
     const runPromise = run(defaultOptions({ open: true }), {
       createPty: () => mockPty,
-      staticDir: tmpDir,
       openBrowser: async (url) => {
         browserCalls.push(url);
       },
@@ -126,7 +108,6 @@ describe("run", () => {
 
     const runPromise = run(defaultOptions({ open: false }), {
       createPty: () => mockPty,
-      staticDir: tmpDir,
       openBrowser: async (url) => {
         browserCalls.push(url);
       },
@@ -145,7 +126,6 @@ describe("run", () => {
 
     const runPromise = run(defaultOptions({ readonly: true, port: 0 }), {
       createPty: () => mockPty,
-      staticDir: tmpDir,
       onReady: (info) => {
         readyInfo = info;
       },

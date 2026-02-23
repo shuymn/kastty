@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { Hono } from "hono";
-import { hostValidation, originValidation, tokenValidation } from "./middleware.ts";
+import { isValidHost, isValidOrigin, isValidToken } from "./middleware.ts";
 import { generateToken, maskToken } from "./token.ts";
+
+function req(url: string, headers?: Record<string, string>): Request {
+  return new Request(url, { headers });
+}
 
 describe("generateToken", () => {
   it("generates a token with at least 32 hex characters", () => {
@@ -40,115 +43,66 @@ describe("maskToken", () => {
   });
 });
 
-describe("hostValidation", () => {
-  function createApp(port: number) {
-    const app = new Hono();
-    app.use(hostValidation(port));
-    app.get("/test", (c) => c.text("ok"));
-    return app;
-  }
-
-  it("allows request with Host 127.0.0.1:<port>", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test", { headers: { Host: "127.0.0.1:3000" } });
-    expect(res.status).toBe(200);
+describe("isValidHost", () => {
+  it("allows request with Host 127.0.0.1:<port>", () => {
+    expect(isValidHost(req("http://x/test", { Host: "127.0.0.1:3000" }), 3000)).toBe(true);
   });
 
-  it("allows request with Host localhost:<port>", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test", { headers: { Host: "localhost:3000" } });
-    expect(res.status).toBe(200);
+  it("allows request with Host localhost:<port>", () => {
+    expect(isValidHost(req("http://x/test", { Host: "localhost:3000" }), 3000)).toBe(true);
   });
 
-  it("rejects request with invalid Host header", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test", { headers: { Host: "evil.com:3000" } });
-    expect(res.status).toBe(403);
+  it("rejects request with invalid Host header", () => {
+    expect(isValidHost(req("http://x/test", { Host: "evil.com:3000" }), 3000)).toBe(false);
   });
 
-  it("rejects request with mismatched port", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test", { headers: { Host: "127.0.0.1:9999" } });
-    expect(res.status).toBe(403);
+  it("rejects request with mismatched port", () => {
+    expect(isValidHost(req("http://x/test", { Host: "127.0.0.1:9999" }), 3000)).toBe(false);
   });
 
-  it("rejects request with no Host header", async () => {
-    const app = createApp(3000);
-    const res = await app.request("http://no-host/test");
-    expect(res.status).toBe(403);
+  it("rejects request with no Host header", () => {
+    expect(isValidHost(req("http://x/test"), 3000)).toBe(false);
   });
 });
 
-describe("originValidation", () => {
-  function createApp(port: number) {
-    const app = new Hono();
-    app.use(originValidation(port));
-    app.get("/test", (c) => c.text("ok"));
-    return app;
-  }
-
-  it("allows request with no Origin header (non-browser)", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test");
-    expect(res.status).toBe(200);
+describe("isValidOrigin", () => {
+  it("allows request with no Origin header (non-browser)", () => {
+    expect(isValidOrigin(req("http://x/test"), 3000)).toBe(true);
   });
 
-  it("allows request with Origin http://127.0.0.1:<port>", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test", { headers: { Origin: "http://127.0.0.1:3000" } });
-    expect(res.status).toBe(200);
+  it("allows request with Origin http://127.0.0.1:<port>", () => {
+    expect(isValidOrigin(req("http://x/test", { Origin: "http://127.0.0.1:3000" }), 3000)).toBe(true);
   });
 
-  it("allows request with Origin http://localhost:<port>", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test", { headers: { Origin: "http://localhost:3000" } });
-    expect(res.status).toBe(200);
+  it("allows request with Origin http://localhost:<port>", () => {
+    expect(isValidOrigin(req("http://x/test", { Origin: "http://localhost:3000" }), 3000)).toBe(true);
   });
 
-  it("rejects request with external Origin", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test", { headers: { Origin: "http://evil.com" } });
-    expect(res.status).toBe(403);
+  it("rejects request with external Origin", () => {
+    expect(isValidOrigin(req("http://x/test", { Origin: "http://evil.com" }), 3000)).toBe(false);
   });
 
-  it("rejects request with Origin on different port", async () => {
-    const app = createApp(3000);
-    const res = await app.request("/test", { headers: { Origin: "http://127.0.0.1:9999" } });
-    expect(res.status).toBe(403);
+  it("rejects request with Origin on different port", () => {
+    expect(isValidOrigin(req("http://x/test", { Origin: "http://127.0.0.1:9999" }), 3000)).toBe(false);
   });
 });
 
-describe("tokenValidation", () => {
+describe("isValidToken", () => {
   const token = "a".repeat(32);
 
-  function createApp(t: string) {
-    const app = new Hono();
-    app.use(tokenValidation(t));
-    app.get("/test", (c) => c.text("ok"));
-    return app;
-  }
-
-  it("allows request with valid token in query parameter", async () => {
-    const app = createApp(token);
-    const res = await app.request(`/test?t=${token}`);
-    expect(res.status).toBe(200);
+  it("allows request with valid token in query parameter", () => {
+    expect(isValidToken(req(`http://x/test?t=${token}`), token)).toBe(true);
   });
 
-  it("rejects request with missing token", async () => {
-    const app = createApp(token);
-    const res = await app.request("/test");
-    expect(res.status).toBe(403);
+  it("rejects request with missing token", () => {
+    expect(isValidToken(req("http://x/test"), token)).toBe(false);
   });
 
-  it("rejects request with wrong token", async () => {
-    const app = createApp(token);
-    const res = await app.request("/test?t=wrong-token");
-    expect(res.status).toBe(403);
+  it("rejects request with wrong token", () => {
+    expect(isValidToken(req("http://x/test?t=wrong-token"), token)).toBe(false);
   });
 
-  it("rejects request with empty token parameter", async () => {
-    const app = createApp(token);
-    const res = await app.request("/test?t=");
-    expect(res.status).toBe(403);
+  it("rejects request with empty token parameter", () => {
+    expect(isValidToken(req("http://x/test?t="), token)).toBe(false);
   });
 });

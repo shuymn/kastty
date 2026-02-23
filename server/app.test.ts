@@ -1,11 +1,8 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import path from "node:path";
+import { afterEach, describe, expect, it } from "bun:test";
 import { ReplayBuffer } from "../buffer/replay-buffer.ts";
 import type { PtyAdapter } from "../pty/adapter.ts";
 import { SessionManager } from "../session/session-manager.ts";
-import { createApp } from "./app.ts";
+import { createServer } from "./app.ts";
 
 class MockPtyAdapter implements PtyAdapter {
   private dataCallback: ((data: Uint8Array) => void) | null = null;
@@ -43,17 +40,7 @@ class MockPtyAdapter implements PtyAdapter {
 }
 
 const TOKEN = "a".repeat(32);
-let tmpDir: string;
 const servers: ReturnType<typeof Bun.serve>[] = [];
-
-beforeAll(async () => {
-  tmpDir = await mkdtemp(path.join(tmpdir(), "kastty-test-"));
-  await Bun.write(path.join(tmpDir, "index.html"), "<html><body>test</body></html>");
-});
-
-afterAll(async () => {
-  await rm(tmpDir, { recursive: true });
-});
 
 afterEach(() => {
   for (const s of servers) s.stop(true);
@@ -78,8 +65,8 @@ function startServer(options: { replayData?: Uint8Array } = {}) {
   }
 
   const port = findPort();
-  const { app, websocket } = createApp({ session, token: TOKEN, port, staticDir: tmpDir });
-  const server = Bun.serve({ fetch: app.fetch, websocket, port, hostname: "127.0.0.1" });
+  const { fetch, websocket } = createServer({ session, token: TOKEN, port });
+  const server = Bun.serve({ fetch, websocket, port, hostname: "127.0.0.1" });
   servers.push(server);
 
   return {
@@ -87,7 +74,6 @@ function startServer(options: { replayData?: Uint8Array } = {}) {
     session,
     server,
     port: server.port,
-    app,
     wsUrl: `ws://127.0.0.1:${server.port}/ws?t=${TOKEN}`,
     httpUrl: (p = "/") => `http://127.0.0.1:${server.port}${p}?t=${TOKEN}`,
   };
@@ -129,16 +115,6 @@ function waitForMessage(ws: WebSocket): Promise<MessageEvent> {
     );
   });
 }
-
-describe("static file serving", () => {
-  it("serves index.html on GET /", async () => {
-    const { httpUrl } = startServer();
-    const res = await fetch(httpUrl("/"));
-    expect(res.status).toBe(200);
-    const body = await res.text();
-    expect(body).toContain("<html>");
-  });
-});
 
 describe("WebSocket", () => {
   it("upgrade succeeds with valid token", async () => {

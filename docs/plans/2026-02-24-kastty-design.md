@@ -5,7 +5,7 @@
 **kastty** は、ローカルで起動したターミナル（PTY）をブラウザで表示・操作できる **ローカル専用のターミナル共有ツール** である。
 主用途は MTG での画面共有・デモ・ペア作業補助であり、rtty / gotty / ttyd 系の思想をベースに、表示品質を重視した「見せるためのターミナル」を提供する。
 
-v1 では Bun + Hono + ghostty-web を採用し、`127.0.0.1` のみに bind するローカルサーバとして動作する。対象 OS は macOS / Linux（POSIX）。
+v1 では Bun + ghostty-web を採用し、`127.0.0.1` のみに bind するローカルサーバとして動作する。HTTP/WS は `Bun.serve()` ネイティブ API で処理し、フロントエンドは Bun HTML imports で自動バンドルする。対象 OS は macOS / Linux（POSIX）。
 
 ## Goals
 
@@ -132,7 +132,8 @@ sequenceDiagram
 | レイヤー | 技術 | 選定理由 |
 |---------|------|---------|
 | Runtime | Bun | PTY API (`Bun.Terminal`) が揃っており実装最短。単体実行ファイル化（`--compile`）で配布しやすい |
-| Web framework | Hono | Bun との相性が良く、HTTP/WS の整理がしやすい。薄く書ける |
+| HTTP / WS | `Bun.serve()` ネイティブ API | ルートが 3 つと単純なため、フレームワーク不要。HTML imports による自動バンドル・HMR も活用できる（[ADR-0008](../adr/0008-remove-hono-use-bun-native.md)） |
+| Frontend bundling | Bun HTML imports | `import page from "./index.html"` + `routes` でビルドステップ不要。TypeScript の自動バンドルと開発時 HMR を提供 |
 | Terminal rendering | ghostty-web | xterm.js 互換 API で移行しやすく、表示品質改善の期待値が高い |
 | Protocol | WebSocket | 単一接続、双方向リアルタイム通信 |
 | PTY | `Bun.Terminal` | Bun ネイティブ PTY API |
@@ -260,12 +261,13 @@ kastty --open=false           # ブラウザ自動起動を無効化
 ### モジュール構成
 
 ```
-cli/        引数解析、起動設定、ブラウザオープン
-server/     Hono app、ルーティング、Host/Origin/Token 検証
+cli/        引数解析、起動設定、ブラウザオープン、Bun.serve() 起動
+server/     fetch / websocket ハンドラ、Host/Origin/Token 検証
 session/    セッション管理（1 セッション想定）、PTY ライフサイクル
 pty/        BunTerminalAdapter（将来の差し替えポイント）
-web/        フロントエンド（ghostty-web + UI）
+web/        フロントエンド（ghostty-web + UI）、index.html は Bun HTML imports で自動バンドル
 protocol/   WS 制御メッセージ型定義（JSON schema 相当の TS 型）
+security/   Host/Origin/Token 検証の純関数
 ```
 
 **設計ルール:**
@@ -273,15 +275,15 @@ protocol/   WS 制御メッセージ型定義（JSON schema 相当の TS 型）
 - WS プロトコルはランタイム非依存
 - UI と端末 I/O を分離（テスタビリティ確保）
 
-**M0 で選定するライブラリ:**
+**選定済みライブラリ:**
 
-| モジュール | 用途 | 候補 |
+| モジュール | 用途 | 選定 |
 |-----------|------|------|
-| `protocol/` | WS 制御メッセージのランタイムバリデーション | Zod, TypeBox 等 |
-| `cli/` | CLI 引数パーサー | citty, commander 等（フラグが少ないため軽量なもので十分） |
-| `web/` | フロントエンド UI フレームワーク | vanilla TS, Preact, Solid 等（UI 規模に応じて判断） |
-| `web/` | フロントエンドビルド | Bun bundler, Vite 等 |
-| 共通 | ロギング（トークンマスク表示を含む） | console.log + 自前, pino, consola 等 |
+| `protocol/` | WS 制御メッセージのランタイムバリデーション | Zod |
+| `cli/` | CLI 引数パーサー | 自前（フラグが少ないため） |
+| `web/` | フロントエンド UI フレームワーク | vanilla TS |
+| `web/` | フロントエンドビルド | Bun HTML imports（ビルドステップ不要） |
+| `server/` | HTTP / WS サーバー | `Bun.serve()` ネイティブ API（[ADR-0008](../adr/0008-remove-hono-use-bun-native.md)） |
 
 ### 状態管理
 
@@ -395,13 +397,14 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 
 | ADR | Decision | Status |
 |-----|----------|--------|
-| [0001](../adr/0001-tech-stack-bun-hono-ghostty-web.md) | v1 の技術スタックとして Bun + Hono + ghostty-web を採用 | Proposed |
+| [0001](../adr/0001-tech-stack-bun-hono-ghostty-web.md) | v1 の技術スタックとして Bun + Hono + ghostty-web を採用 | Accepted (Web framework 部分は 0008 により Superseded) |
 | [0002](../adr/0002-localhost-only-security-model.md) | localhost 限定 + Host/Origin/Token 検証によるセキュリティモデル | Proposed |
 | [0003](../adr/0003-single-client-connection.md) | v1 では単一クライアント接続のみサポート | Proposed |
 | [0004](../adr/0004-websocket-protocol-design.md) | WebSocket プロトコルで制御メッセージ（JSON）と入出力データ（生データ）を分離 | Proposed |
 | [0005](../adr/0005-blocking-command-pty-lifecycle.md) | kastty をブロッキングコマンドとし、PTY ライフサイクルをプロセスに紐付け | Proposed |
 | [0006](../adr/0006-readonly-double-guard.md) | readonly を UI + サーバの二重ガードで実装 | Proposed |
 | [0007](../adr/0007-url-query-token.md) | トークンを URL クエリパラメータで受け渡し | Proposed |
+| [0008](../adr/0008-remove-hono-use-bun-native.md) | Hono を削除し Bun ネイティブ API に統一 | Accepted |
 
 ## Open Questions
 

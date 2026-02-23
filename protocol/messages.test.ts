@@ -1,11 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-  type ClientMessage,
-  ProtocolError,
-  parseClientMessage,
-  parseServerMessage,
-  type ServerMessage,
-} from "./messages.ts";
+import { ProtocolError, parseClientMessage, parseServerMessage } from "./messages.ts";
 
 describe("parseClientMessage", () => {
   describe("resize", () => {
@@ -113,7 +107,7 @@ describe("parseClientMessage", () => {
     it("strips unknown properties", () => {
       const msg = parseClientMessage('{"t":"resize","cols":80,"rows":24,"extra":"field"}');
       expect(msg).toEqual({ t: "resize", cols: 80, rows: 24 });
-      expect((msg as Record<string, unknown>)["extra"]).toBeUndefined();
+      expect((msg as Record<string, unknown>).extra).toBeUndefined();
     });
   });
 });
@@ -239,7 +233,7 @@ describe("parseServerMessage", () => {
     it("strips unknown properties", () => {
       const msg = parseServerMessage('{"t":"exit","code":0,"extra":"field"}');
       expect(msg).toEqual({ t: "exit", code: 0 });
-      expect((msg as Record<string, unknown>)["extra"]).toBeUndefined();
+      expect((msg as Record<string, unknown>).extra).toBeUndefined();
     });
   });
 });
