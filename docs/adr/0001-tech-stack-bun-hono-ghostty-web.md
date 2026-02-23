@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted (Web framework 部分は [0008](0008-remove-hono-use-bun-native.md) により Superseded)
+Accepted (Web framework 部分は [0008](0008-remove-hono-use-bun-native.md)、PTY 部分は [0009](0009-replace-bun-terminal-with-bun-pty.md) により Superseded)
 
 ## Context
 

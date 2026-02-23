@@ -5,7 +5,7 @@
 **kastty** は、ローカルで起動したターミナル（PTY）をブラウザで表示・操作できる **ローカル専用のターミナル共有ツール** である。
 主用途は MTG での画面共有・デモ・ペア作業補助であり、rtty / gotty / ttyd 系の思想をベースに、表示品質を重視した「見せるためのターミナル」を提供する。
 
-v1 では Bun + ghostty-web を採用し、`127.0.0.1` のみに bind するローカルサーバとして動作する。HTTP/WS は `Bun.serve()` ネイティブ API で処理し、フロントエンドは Bun HTML imports で自動バンドルする。対象 OS は macOS / Linux（POSIX）。
+v1 では Bun + ghostty-web を採用し、`127.0.0.1` のみに bind するローカルサーバとして動作する。HTTP/WS は `Bun.serve()` ネイティブ API で処理し、フロントエンドは Bun HTML imports で自動バンドルする。PTY 操作には bun-pty を使用する（[ADR-0009](../adr/0009-replace-bun-terminal-with-bun-pty.md)）。対象 OS は macOS / Linux（POSIX）。
 
 ## Goals
 
@@ -38,7 +38,7 @@ v1 では以下をスコープ外とする：
 - 認証基盤（OAuth, SSO 等）
 - 複数ユーザー権限管理
 - 完全なセッション復元（サーバ側 VT パーサによる画面状態の解析・保持）。再接続時の画面復元は出力リプレイバッファで対応する（PTY 仕様を参照）
-- Windows 対応（`Bun.Terminal` 制約のため）
+- Windows 対応（POSIX PTY 制約のため）
 - tmux 代替のような多ペイン / 多セッション管理
 - SSH クライアント機能（まずはローカル PTY に集中）
 
@@ -71,14 +71,14 @@ graph TB
         GW[ghostty-web<br/>WASM Terminal]
     end
 
-    subgraph "Server (Bun + Hono)"
+    subgraph "Server (Bun)"
         HTTP[HTTP Server<br/>静的配信]
         WS[WebSocket Server<br/>TTY I/O]
         SEC[Security<br/>Host/Origin/Token 検証]
         SM[Session Manager]
     end
 
-    PTY[PTY<br/>Bun.Terminal]
+    PTY[PTY<br/>bun-pty]
     SHELL[Shell / Command]
 
     Browser -->|"GET /"| HTTP
@@ -131,12 +131,12 @@ sequenceDiagram
 
 | レイヤー | 技術 | 選定理由 |
 |---------|------|---------|
-| Runtime | Bun | PTY API (`Bun.Terminal`) が揃っており実装最短。単体実行ファイル化（`--compile`）で配布しやすい |
+| Runtime | Bun | 単体実行ファイル化（`--compile`）で配布しやすい。HTTP/WS サーバーや HTML imports 等のネイティブ API が充実 |
 | HTTP / WS | `Bun.serve()` ネイティブ API | ルートが 3 つと単純なため、フレームワーク不要。HTML imports による自動バンドル・HMR も活用できる（[ADR-0008](../adr/0008-remove-hono-use-bun-native.md)） |
 | Frontend bundling | Bun HTML imports | `import page from "./index.html"` + `routes` でビルドステップ不要。TypeScript の自動バンドルと開発時 HMR を提供 |
 | Terminal rendering | ghostty-web | xterm.js 互換 API で移行しやすく、表示品質改善の期待値が高い |
 | Protocol | WebSocket | 単一接続、双方向リアルタイム通信 |
-| PTY | `Bun.Terminal` | Bun ネイティブ PTY API |
+| PTY | bun-pty | Bun 向け PTY ライブラリ。`Bun.Terminal` のバグ回避のため採用（[ADR-0009](../adr/0009-replace-bun-terminal-with-bun-pty.md)） |
 
 ### CLI 仕様
 
@@ -264,7 +264,7 @@ kastty --open=false           # ブラウザ自動起動を無効化
 cli/        引数解析、起動設定、ブラウザオープン、Bun.serve() 起動
 server/     fetch / websocket ハンドラ、Host/Origin/Token 検証
 session/    セッション管理（1 セッション想定）、PTY ライフサイクル
-pty/        BunTerminalAdapter（将来の差し替えポイント）
+pty/        BunPtyAdapter（将来の差し替えポイント）
 web/        フロントエンド（ghostty-web + UI）、index.html は Bun HTML imports で自動バンドル
 protocol/   WS 制御メッセージ型定義（JSON schema 相当の TS 型）
 security/   Host/Origin/Token 検証の純関数
@@ -284,6 +284,7 @@ security/   Host/Origin/Token 検証の純関数
 | `web/` | フロントエンド UI フレームワーク | vanilla TS |
 | `web/` | フロントエンドビルド | Bun HTML imports（ビルドステップ不要） |
 | `server/` | HTTP / WS サーバー | `Bun.serve()` ネイティブ API（[ADR-0008](../adr/0008-remove-hono-use-bun-native.md)） |
+| `pty/` | PTY 操作 | bun-pty（[ADR-0009](../adr/0009-replace-bun-terminal-with-bun-pty.md)） |
 
 ### 状態管理
 
@@ -330,10 +331,10 @@ readonly はクライアント UI（keydown 遮断）とサーバ（WS 入力メ
 
 ## Risks and Mitigations
 
-### Bun / ghostty-web の変化
+### Bun / ghostty-web / bun-pty の変化
 
 - **リスク**: API 変更・挙動変化
-- **対策**: バージョン固定、`pty/` / `web/terminal` を薄いラッパにする、依存更新時のスモークテストを用意
+- **対策**: バージョン固定、`pty/` / `web/terminal` を薄いラッパにする、依存更新時のスモークテストを用意。`Bun.Terminal` のバグが修正された場合はネイティブ API への回帰も検討する
 
 ### ローカルセキュリティの見落とし
 
@@ -369,8 +370,8 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 
 ### M0: 技術検証（PoC）
 
-- `Bun.Terminal` で shell 起動
-- Hono WS で入出力中継
+- PTY（bun-pty）で shell 起動
+- WS で入出力中継
 - ghostty-web で描画
 - resize 反映
 
@@ -405,6 +406,7 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 | [0006](../adr/0006-readonly-double-guard.md) | readonly を UI + サーバの二重ガードで実装 | Proposed |
 | [0007](../adr/0007-url-query-token.md) | トークンを URL クエリパラメータで受け渡し | Proposed |
 | [0008](../adr/0008-remove-hono-use-bun-native.md) | Hono を削除し Bun ネイティブ API に統一 | Accepted |
+| [0009](../adr/0009-replace-bun-terminal-with-bun-pty.md) | Bun.Terminal を bun-pty に置換 | Accepted |
 
 ## Open Questions
 
