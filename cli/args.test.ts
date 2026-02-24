@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { DEFAULT_SCROLLBACK_LINES, toGhosttyScrollbackBytes } from "../config/scrollback.ts";
-import { parseCliArgs } from "./args.ts";
+import { CliHelpError, CliParseError, parseCliArgs } from "./args.ts";
 
 describe("parseCliArgs", () => {
   test("default invocation starts the default shell", () => {
@@ -26,8 +26,12 @@ describe("parseCliArgs", () => {
     expect(opts.port).toBe(0);
   });
 
-  test("--open=false suppresses browser launch", () => {
-    const opts = parseCliArgs(["--open=false"]);
+  test("--open=false is rejected", () => {
+    expect(() => parseCliArgs(["--open=false"])).toThrow(CliParseError);
+  });
+
+  test("--no-open suppresses browser launch", () => {
+    const opts = parseCliArgs(["--no-open"]);
     expect(opts.open).toBe(false);
   });
 
@@ -76,5 +80,29 @@ describe("parseCliArgs", () => {
   test("defaults to empty fontFamily", () => {
     const opts = parseCliArgs([]);
     expect(opts.fontFamily).toBe("");
+  });
+
+  test("--help throws CliHelpError with usage", () => {
+    expect(() => parseCliArgs(["--help"])).toThrow(CliHelpError);
+
+    try {
+      parseCliArgs(["--help"]);
+    } catch (error: unknown) {
+      if (error instanceof CliHelpError) {
+        expect(error.output).toContain("Usage: kastty [options] [-- command [args...]]");
+      } else {
+        throw error;
+      }
+    }
+  });
+
+  test("unknown leading option is rejected", () => {
+    expect(() => parseCliArgs(["--version"])).toThrow(CliParseError);
+  });
+
+  test("dashed arguments after -- are passed through as command args", () => {
+    const opts = parseCliArgs(["--", "htop", "-d", "10"]);
+    expect(opts.command).toBe("htop");
+    expect(opts.args).toEqual(["-d", "10"]);
   });
 });
