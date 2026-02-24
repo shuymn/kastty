@@ -5,7 +5,9 @@
     ":timezone(Asia/Tokyo)",
     "schedule:weekends"
   ],
-  "labels": ["dependencies"],
+  "labels": [
+    "dependencies"
+  ],
   "lockFileMaintenance": {
     "enabled": true,
     "automerge": true
@@ -19,24 +21,36 @@
     {
       "customType": "regex",
       "description": "Update FONTTOOLS_VERSION in update-nerd-font.sh",
-      "fileMatch": ["^scripts/update-nerd-font\\.sh$"],
-      "matchStrings": ["FONTTOOLS_VERSION=\"(?<currentValue>[^\"]+)\""],
+      "managerFilePatterns": [
+        "/^scripts/update-nerd-font\\.sh$/"
+      ],
+      "matchStrings": [
+        "FONTTOOLS_VERSION=\"(?<currentValue>[^\"]+)\""
+      ],
       "depNameTemplate": "fonttools",
       "datasourceTemplate": "pypi"
     },
     {
       "customType": "regex",
       "description": "Update BROTLI_VERSION in update-nerd-font.sh",
-      "fileMatch": ["^scripts/update-nerd-font\\.sh$"],
-      "matchStrings": ["BROTLI_VERSION=\"(?<currentValue>[^\"]+)\""],
+      "managerFilePatterns": [
+        "/^scripts/update-nerd-font\\.sh$/"
+      ],
+      "matchStrings": [
+        "BROTLI_VERSION=\"(?<currentValue>[^\"]+)\""
+      ],
       "depNameTemplate": "brotli",
       "datasourceTemplate": "pypi"
     },
     {
       "customType": "regex",
       "description": "Update NERD_FONTS_VERSION in update-nerd-font.sh",
-      "fileMatch": ["^scripts/update-nerd-font\\.sh$"],
-      "matchStrings": ["NERD_FONTS_VERSION=\"(?<currentValue>[^\"]+)\""],
+      "managerFilePatterns": [
+        "/^scripts/update-nerd-font\\.sh$/"
+      ],
+      "matchStrings": [
+        "NERD_FONTS_VERSION=\"(?<currentValue>[^\"]+)\""
+      ],
       "depNameTemplate": "ryanoasis/nerd-fonts",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
@@ -45,7 +59,10 @@
   "packageRules": [
     {
       "description": "Automerge minor/patch updates for non-major versions",
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "matchCurrentVersion": ">=1.0.0",
       "automerge": true
     }
