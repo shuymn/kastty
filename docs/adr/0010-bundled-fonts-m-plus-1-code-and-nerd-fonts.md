@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Accepted
 
 ## Context
 
@@ -39,14 +39,21 @@ kastty は「見せるためのターミナル」を提供するツールであ�
 
 Bun の CSS バンドラの `unicode-range` 破損を回避するため、フォント CSS とファイルをサーバ側で独自に配信する：
 
-1. **起動時ロード** (`server/fonts.ts`): fontsource パッケージの `index.css` を読み込み、`url()` パスを `/fonts/` ルートに書き換え。Nerd Font の `@font-face` を追記
+1. **起動時ロード** (`server/fonts.ts`): fontsource パッケージの `index.css`（text import）を読み込み、`url()` パスを `/fonts/` ルートに書き換え。Nerd Font の `@font-face` を追記
 2. **CSS 配信** (`GET /fonts.css`): 書き換え済み CSS を返却。`Cache-Control: public, max-age=31536000, immutable`
-3. **WOFF2 配信** (`GET /fonts/*`): 個別の WOFF2 ファイルを返却。同じく immutable キャッシュ
+3. **WOFF2 配信** (`GET /fonts/*`): 個別の WOFF2 ファイルを返却。同じく immutable キャッシュ。M PLUS 側は生成済みマップ（`server/m-plus-font-files.ts`）を通じて解決する
 4. **クライアント側** (`web/main.ts`): `<link>` で `/fonts.css` を読み込み、`document.fonts.load()` でフォント準備完了を待ってから ghostty-web を初期化
+
+### M PLUS 1 Code の更新
+
+- `scripts/generate-m-plus-font-files.ts` で `server/m-plus-font-files.ts` を再生成する
+- `bun run check` に `check:generated`（`--check` モード）が含まれ、生成物が古い場合は CI を fail させる
+- Renovate による `@fontsource-variable/m-plus-1-code` 更新 PR では `refresh-m-plus-font-assets.yml` が生成物を更新して自動コミットする
 
 ### Nerd Font の更新
 
 `scripts/update-nerd-font.sh` を用意し、Nerd Fonts の最新リリースから Symbols Only TTF をダウンロードし、`fonttools` で WOFF2 に変換して `web/fonts/` に配置する。
+Renovate による関連バージョン更新 PR では `refresh-nerd-font-assets.yml` がアセット更新を自動コミットする。
 
 ## Consequences
 
@@ -63,9 +70,10 @@ Bun の CSS バンドラの `unicode-range` 破損を回避するため、フォ
 - バンドルサイズの増加（M PLUS 1 Code の WOFF2 群 + Nerd Font WOFF2）
 - サーバ側ルートが 2 つ増加（`/fonts.css`, `/fonts/*`）
 - Bun の CSS バンドラのバグに対するワークアラウンドであり、将来バグが修正された場合は Bun HTML imports 経由の配信に移行できる
-- Nerd Font のバージョン更新は手動スクリプト実行が必要
+- 生成ファイル（`server/m-plus-font-files.ts`）の管理コストが増える
 
 ### Neutral
 
 - フォントファイルは起動時にメモリに読み込まれるため、配信時のディスク I/O は発生しない
-- `@fontsource-variable/m-plus-1-code` パッケージは npm 依存として管理される。Nerd Font は手動管理（スクリプト + リポジトリ内 WOFF2）
+- `@fontsource-variable/m-plus-1-code` は npm 依存として管理し、生成スクリプト + CI 検証で配布アセットマップを同期する
+- Nerd Font はスクリプト更新を基本とし、Renovate PR では Workflow により追従を自動化する

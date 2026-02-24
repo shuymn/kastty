@@ -9,7 +9,9 @@
     "fmt": "biome format --fix .",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web",
     "build": "bun build --compile index.ts --outfile kastty",
-    "check": "biome check --fix . && bun run typecheck && bun test"
+    "gen:m-plus-font-files": "bun scripts/generate-m-plus-font-files.ts",
+    "check:generated": "bun scripts/generate-m-plus-font-files.ts --check",
+    "check": "biome check --fix . && bun run check:generated && bun run typecheck && bun test"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.4",

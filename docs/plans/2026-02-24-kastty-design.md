@@ -274,7 +274,7 @@ server/     fetch / websocket ハンドラ、Host/Origin/Token 検証、フォ�
 session/    セッション管理（1 PTY / 複数クライアント）、PTY ライフサイクル
 pty/        BunPtyAdapter（将来の差し替えポイント）
 web/        フロントエンド（ghostty-web + UI）、index.html は Bun HTML imports で自動バンドル、同梱フォントアセット
-scripts/    ユーティリティスクリプト（Nerd Font 更新等）
+scripts/    ユーティリティスクリプト（Nerd Font 更新、M PLUS アセットマップ生成等）
 protocol/   WS 制御メッセージ型定義（JSON schema 相当の TS 型）
 security/   Host/Origin/Token 検証の純関数
 ```
@@ -302,12 +302,14 @@ security/   Host/Origin/Token 検証の純関数
 
 Bun の CSS バンドラが `unicode-range` を破損するため、HTML imports 経由ではなくサーバ側で独自に配信する：
 
-1. 起動時に fontsource パッケージの CSS と WOFF2 をメモリに読み込む
+1. 起動時に fontsource パッケージの CSS（text import）と WOFF2 をメモリに読み込む。M PLUS WOFF2 は生成済みマップ（`server/m-plus-font-files.ts`）を経由して解決する
 2. CSS 内の `url()` パスを `/fonts/` ルートに書き換え、Nerd Font の `@font-face` を追記
 3. `/fonts.css` と `/fonts/*` ルートで配信（immutable キャッシュ）
 4. クライアントは `<link>` で CSS を読み込み、`document.fonts.load()` 完了後に ghostty-web を初期化
 
 ユーザーは `?fontFamily=` クエリパラメータでデフォルトフォントを上書きできる。
+
+運用上は、`scripts/generate-m-plus-font-files.ts` によりマップを再生成し、`bun run check` に含まれる `check:generated` で古い生成物を検知する。Renovate の `@fontsource-variable/m-plus-1-code` 更新 PR では `refresh-m-plus-font-assets.yml` により生成物更新を自動コミットする。
 
 ### 状態管理
 
@@ -430,7 +432,7 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 | [0007](../adr/0007-url-query-token.md) | トークンを URL クエリパラメータで受け渡し | Proposed |
 | [0008](../adr/0008-remove-hono-use-bun-native.md) | Hono を削除し Bun ネイティブ API に統一 | Accepted |
 | [0009](../adr/0009-replace-bun-terminal-with-bun-pty.md) | Bun.Terminal を bun-pty に置換 | Accepted |
-| [0010](../adr/0010-bundled-fonts-m-plus-1-code-and-nerd-fonts.md) | デフォルトフォントとして M PLUS 1 Code + Nerd Fonts Symbols を同梱・配信 | Proposed |
+| [0010](../adr/0010-bundled-fonts-m-plus-1-code-and-nerd-fonts.md) | デフォルトフォントとして M PLUS 1 Code + Nerd Fonts Symbols を同梱・配信 | Accepted |
 | [0011](../adr/0011-ghostty-web-integer-scroll-workaround.md) | ghostty-web のスクロール描画バグに対し整数スクロールを適用 | Accepted |
 | [0012](../adr/0012-remove-auto-scroll-toggle.md) | ghostty-web と競合する auto-scroll トグルを廃止 | Accepted |
 | [0013](../adr/0013-multi-client-shared-session.md) | 同一トークンで複数クライアント接続を許可し単一 PTY セッションを共有 | Accepted |
