@@ -50,7 +50,11 @@ When no command is specified, kastty launches your default shell (`$SHELL`).
 | `--port <n>` | `0` (auto) | Port to listen on |
 | `--readonly` | `false` | Start in readonly mode |
 | `--font-family <name>` | - | Terminal font family |
+| `--scrollback <lines>` | `50000` | Requested terminal scrollback lines in browser (approximate) |
+| `--replay-buffer-bytes <n>` | auto (from `--scrollback`) | Replay buffer size for reconnect restore |
 | `--open` / `--open=false` | `true` | Auto-open browser |
+
+`--scrollback` is applied as an internal capacity limit in ghostty-web, so the visible line count varies by output width and escape sequences.
 
 ### Examples
 
@@ -63,6 +67,9 @@ kastty --readonly --port 8080
 
 # Run a specific command with a custom font
 kastty --font-family "Fira Code" htop
+
+# Increase local scrollback and reconnect replay history
+kastty --scrollback 200000 --replay-buffer-bytes 33554432
 
 # Start without opening the browser
 kastty --open=false

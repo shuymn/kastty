@@ -193,7 +193,8 @@ kastty --open=false           # ブラウザ自動起動を無効化
 
 ブラウザ切断後の再接続時に PTY の現在の画面を復元するため、サーバ側で **出力リプレイバッファ** を保持する。
 
-- サーバは PTY からの出力をリングバッファ（上限サイズ固定、デフォルト 1 MB）に蓄積する
+- サーバは PTY からの出力をリングバッファ（上限サイズ可変）に蓄積する
+- `--replay-buffer-bytes` 未指定時は `--scrollback` から算出した値を既定容量として使用し、明示指定がある場合はそちらを優先する（[ADR-0014](../adr/0014-align-replay-buffer-with-scrollback.md)）
 - クライアント接続時（初回・再接続を問わず）、`hello` 送信後にバッファ内容をバイナリフレームとして一括送信し、その後通常の I/O ループに入る
 - クライアント側の ghostty-web がリプレイされたエスケープシーケンスを処理することで、切断前の画面状態が復元される
 
@@ -310,7 +311,7 @@ Bun の CSS バンドラが `unicode-range` を破損するため、HTML imports
 #### サーバ側
 
 - 1 つの PTY セッション
-- 出力リプレイバッファ（リングバッファ、上限 1 MB）
+- 出力リプレイバッファ（リングバッファ、容量は scrollback 設定と連動して既定値を決定）
 - 接続中クライアント（同一トークンで複数）
 - トークン
 - 設定（readonly / shell / command など）
@@ -430,6 +431,7 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 | [0011](../adr/0011-ghostty-web-integer-scroll-workaround.md) | ghostty-web のスクロール描画バグに対し整数スクロールを適用 | Accepted |
 | [0012](../adr/0012-remove-auto-scroll-toggle.md) | ghostty-web と競合する auto-scroll トグルを廃止 | Accepted |
 | [0013](../adr/0013-multi-client-shared-session.md) | 同一トークンで複数クライアント接続を許可し単一 PTY セッションを共有 | Accepted |
+| [0014](../adr/0014-align-replay-buffer-with-scrollback.md) | replay buffer の既定容量を scrollback 設定に連動させる | Accepted |
 
 ## Open Questions
 
