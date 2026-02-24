@@ -165,7 +165,7 @@ kastty --open=false           # ブラウザ自動起動を無効化
 
 - 端末表示（ghostty-web）
 - 接続状態表示（connecting / connected / disconnected）
-- タブタイトル追従（OSC タイトルを反映。connecting は `🟡`、disconnected は `🔴` を先頭表示）
+- タブタイトル追従（OSC タイトルを反映。`🟡`=connecting、`🔴`=disconnected、`🔒`=readonly。優先順位は `connecting/disconnected > readonly`）
 - フォントサイズ調整（+/-）
 - readonly 切替
 

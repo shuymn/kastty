@@ -109,9 +109,10 @@ async function main() {
   let lastRows = 0;
   let connectionState: ConnectionState = "disconnected";
   let terminalTitle: string | null = null;
+  let readonlyEnabled = false;
 
   const updateDocumentTitle = () => {
-    document.title = formatTabTitle(connectionState, terminalTitle);
+    document.title = formatTabTitle(connectionState, terminalTitle, readonlyEnabled);
   };
 
   onResize((cols, rows) => {
@@ -132,6 +133,7 @@ async function main() {
     },
     DEFAULT_FONT_SIZE,
   );
+  readonlyEnabled = controls.getState().readonly;
 
   const toolbar = createControlsToolbar(controls);
   container.parentElement?.insertBefore(toolbar, container);
@@ -158,6 +160,12 @@ async function main() {
 
   client.onReadonlyChange((enabled) => {
     controls.setReadonly(enabled);
+  });
+
+  controls.onStateChange((state) => {
+    if (readonlyEnabled === state.readonly) return;
+    readonlyEnabled = state.readonly;
+    updateDocumentTitle();
   });
 
   const encoder = new TextEncoder();
