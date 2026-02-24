@@ -21,7 +21,7 @@ v1 では Bun + ghostty-web を採用し、`127.0.0.1` のみに bind するロ�
 
 - 起動 1 コマンドで使える
 - ブラウザが自動で開く（任意）
-- デモ用途に必要な操作（readonly、フォント拡大、追従 ON/OFF）がすぐ使える
+- デモ用途に必要な操作（readonly、フォント拡大）がすぐ使える
 - 意図しない第三者アクセスを防ぐ（localhost 用途でも最低限の防御）
 
 ### 技術目標
@@ -165,7 +165,6 @@ kastty --open=false           # ブラウザ自動起動を無効化
 - 接続状態表示（connecting / connected / disconnected）
 - フォントサイズ調整（+/-）
 - readonly 切替
-- 出力追従（auto-scroll）ON/OFF
 
 #### P1（v1.1）
 
@@ -316,7 +315,7 @@ Bun の CSS バンドラが `unicode-range` を破損するため、HTML imports
 
 - WS 接続状態
 - Terminal instance
-- UI 設定（font size, presentation mode, follow output）
+- UI 設定（font size, presentation mode）
 - readonly フラグ
 
 #### 接続ポリシー
@@ -399,7 +398,7 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 - localhost bind
 - Host / Origin / Token 検証
 - 自動ブラウザ起動
-- readonly / font size / follow output
+- readonly / font size
 
 **完了条件**: MTG デモに実利用できる
 
@@ -424,6 +423,8 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 | [0008](../adr/0008-remove-hono-use-bun-native.md) | Hono を削除し Bun ネイティブ API に統一 | Accepted |
 | [0009](../adr/0009-replace-bun-terminal-with-bun-pty.md) | Bun.Terminal を bun-pty に置換 | Accepted |
 | [0010](../adr/0010-bundled-fonts-m-plus-1-code-and-nerd-fonts.md) | デフォルトフォントとして M PLUS 1 Code + Nerd Fonts Symbols を同梱・配信 | Proposed |
+| [0011](../adr/0011-ghostty-web-integer-scroll-workaround.md) | ghostty-web のスクロール描画バグに対し整数スクロールを適用 | Accepted |
+| [0012](../adr/0012-remove-auto-scroll-toggle.md) | ghostty-web と競合する auto-scroll トグルを廃止 | Accepted |
 
 ## Open Questions
 
@@ -446,7 +447,7 @@ All resolved. 決定内容は Decision Log の ADR を参照。
 5. `127.0.0.1` のみに bind し、Host / Origin / Token 検証が機能する
 6. readonly モードで入力が無効化される
 7. フォントサイズの増減が即時反映される
-8. 出力追従の ON/OFF が切り替えられる
+8. スクロール挙動は ghostty-web 標準に委譲し、auto-scroll トグルを提供しない
 9. PTY プロセス終了時にクライアントへ通知される
 10. ブラウザ切断後もPTY は維持され、リロードで再接続・現在の画面が表示される
 11. `kastty` プロセスはフォアグラウンドでブロックし、`Ctrl+C` または PTY プロセス終了で停止する

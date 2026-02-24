@@ -270,7 +270,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 
 ### T08: Frontend UI controls
 
-**Goal**: Implement UI components for connection status display, font size adjustment, readonly toggle (client-side), and auto-scroll toggle.
+**Goal**: Implement UI components for connection status display, font size adjustment, and readonly toggle (client-side), while delegating scroll behavior to ghostty-web.
 
 **Design Anchors**: REQ10, REQ11, REQ12, REQ13, DEC06
 **Satisfied Requirements**: REQ10, REQ11, REQ12, REQ13
@@ -280,13 +280,13 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - Test that connection status displays current state (connecting / connected / disconnected)
 - Test that font size increase/decrease updates terminal font size
 - Test that readonly toggle sends WS control message and blocks keydown events
-- Test that auto-scroll toggle enables/disables output following
+- Test that UI controls no longer expose app-managed auto-scroll state
 
 **GREEN**:
 - Connection status indicator reflecting WS state
 - Font size controls (+/−) that update ghostty-web font size
 - Readonly toggle: block keydown events in UI, send `readonly` control message to server
-- Auto-scroll toggle: control terminal scroll-to-bottom behavior on new output
+- Do not implement app-managed auto-scroll toggle; use ghostty-web default output-follow behavior
 
 **REFACTOR**:
 - Unify UI state management if component count grows
@@ -295,7 +295,7 @@ T01 (protocol) ──→ T07 (frontend) ──→ T08 (UI)
 - Connection status reflects actual WS state (AC13 via REQ13)
 - Font size changes are immediate (AC07)
 - Readonly blocks input at UI and server (AC06)
-- Auto-scroll toggles correctly (AC08)
+- No app-managed auto-scroll toggle is present (AC08)
 - `bun run check` passes
 
 ---

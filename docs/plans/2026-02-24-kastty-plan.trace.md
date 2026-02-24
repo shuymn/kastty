@@ -18,7 +18,7 @@
 | GOAL05 | MTG 向けの見せやすい UI（プレゼン寄り） |
 | GOAL06 | 起動 1 コマンドで使える |
 | GOAL07 | ブラウザが自動で開く（任意） |
-| GOAL08 | デモ用途に必要な操作（readonly、フォント拡大、追従 ON/OFF）がすぐ使える |
+| GOAL08 | デモ用途に必要な操作（readonly、フォント拡大）がすぐ使える |
 | GOAL09 | 意図しない第三者アクセスを防ぐ（localhost 用途でも最低限の防御） |
 | GOAL10 | 実装をシンプルに保つ（Bun の強みを活かす） |
 | GOAL11 | 将来 Go / Rust へ移植可能なように、プロトコルと責務分離を明確化する |
@@ -51,7 +51,7 @@
 | REQ09 | 単一クライアント接続ポリシーを実装する | Design: 接続ポリシー |
 | REQ10 | readonly を UI + サーバの二重ガードで実装する | Design: readonly 制御 |
 | REQ11 | フォントサイズ調整 UI を実装する | Design: ブラウザ UI 仕様 P0 |
-| REQ12 | 出力追従（auto-scroll）ON/OFF を実装する | Design: ブラウザ UI 仕様 P0 |
+| REQ12 | app 管理の auto-scroll トグルを提供せず、スクロール挙動を ghostty-web 標準に委譲する | ADR-0012 |
 | REQ13 | 接続状態表示（connecting / connected / disconnected）を実装する | Design: ブラウザ UI 仕様 P0 |
 | REQ14 | 出力リプレイバッファ（リングバッファ、上限 1 MB）を実装する | Design: PTY 仕様 |
 | REQ15 | PTY ライフサイクル = kastty プロセスライフサイクルとする | Design: PTY 仕様 |
@@ -77,6 +77,7 @@
 | DEC05 | ブロッキングコマンド + PTY ライフサイクル紐付け | ADR-0005 |
 | DEC06 | readonly 二重ガード（UI + サーバ） | ADR-0006 |
 | DEC07 | URL クエリパラメータでトークン受け渡し | ADR-0007 |
+| DEC08 | auto-scroll トグルを廃止し、出力追従を ghostty-web 標準挙動に委譲する | ADR-0012 |
 
 ### Acceptance Criteria (ACxx)
 
@@ -89,7 +90,7 @@
 | AC05 | 127.0.0.1 のみに bind し、Host / Origin / Token 検証が機能する |
 | AC06 | readonly モードで入力が無効化される |
 | AC07 | フォントサイズの増減が即時反映される |
-| AC08 | 出力追従の ON/OFF が切り替えられる |
+| AC08 | app 管理の auto-scroll トグルがなく、スクロール挙動を ghostty-web 標準に委譲している |
 | AC09 | PTY プロセス終了時にクライアントへ通知される |
 | AC10 | ブラウザ切断後も PTY は維持され、リロードで再接続・現在の画面が表示される |
 | AC11 | kastty プロセスはフォアグラウンドでブロックし、Ctrl+C または PTY プロセス終了で停止する |
@@ -107,6 +108,7 @@
 | DEC05 | ADR-0005 (ブロッキングコマンド + PTY ライフサイクル) | Proposed |
 | DEC06 | ADR-0006 (readonly 二重ガード) | Proposed |
 | DEC07 | ADR-0007 (URL クエリパラメータトークン) | Proposed |
+| DEC08 | ADR-0012 (auto-scroll トグル廃止) | Accepted |
 
 ---
 
@@ -192,8 +194,9 @@
 | DEC05 | T04, T09 |
 | DEC06 | T04, T08 |
 | DEC07 | T05 |
+| DEC08 | T07, T08 |
 
-**Coverage**: 7/7 DECs mapped → **PASS**
+**Coverage**: 8/8 DECs mapped → **PASS**
 
 ---
 
@@ -207,8 +210,8 @@
 | T04 | REQ09, REQ10, REQ15, REQ16, REQ17, DEC03, DEC05, DEC06 | REQ09, REQ10, REQ15, REQ16, REQ17 | AC06, AC09, AC10 |
 | T05 | REQ03, REQ19, REQ20, REQ25, DEC02, DEC07 | REQ03, REQ19, REQ20, REQ25 | AC05 |
 | T06 | REQ01, REQ02, REQ18, DEC01, DEC04 | REQ01, REQ02, REQ18 | AC02, AC03 |
-| T07 | REQ08, REQ18, DEC01, DEC04 | REQ08, REQ18 | AC02, AC03, AC04, AC10 |
-| T08 | REQ10, REQ11, REQ12, REQ13, DEC06 | REQ10, REQ11, REQ12, REQ13 | AC06, AC07, AC08 |
+| T07 | REQ08, REQ18, DEC01, DEC04, DEC08 | REQ08, REQ18 | AC02, AC03, AC04, AC10 |
+| T08 | REQ10, REQ11, REQ12, REQ13, DEC06, DEC08 | REQ10, REQ11, REQ12, REQ13 | AC06, AC07, AC08 |
 | T09 | REQ06, REQ07, REQ15, REQ20, DEC05 | REQ06, REQ07 | AC01, AC05, AC11 |
 
 **Orphan task anchors** (anchor not in design atoms): none → **PASS**
@@ -226,7 +229,7 @@
 
 **GOAL coverage**: Every GOAL01–GOAL12 is covered by one or more tasks. **PASS**
 
-**DEC coverage**: Every DEC01–DEC07 appears in at least one task's Design Anchors. **PASS**
+**DEC coverage**: Every DEC01–DEC08 appears in at least one task's Design Anchors. **PASS**
 
 **DEC→ADR mapping**: Every DEC maps to exactly one ADR.
 - DEC01 → ADR-0001 ✓
@@ -236,6 +239,7 @@
 - DEC05 → ADR-0005 ✓
 - DEC06 → ADR-0006 ✓
 - DEC07 → ADR-0007 ✓
+- DEC08 → ADR-0012 ✓
 
 **PASS**
 
@@ -243,11 +247,11 @@
 
 Reconstructed design intent from task anchors, goals, GREEN, and DoD:
 
-> The system provides a local terminal sharing tool (T09 CLI) that spawns a PTY via Bun.Terminal adapter (T02), relays I/O through a Hono HTTP/WS server (T06) using a binary/text frame protocol (T01), renders in ghostty-web (T07), and provides UI controls for font, readonly, scroll, and status (T08). Session management (T04) enforces single-client policy with PTY lifecycle tied to the process and output replay buffer (T03) for reconnection. Security (T05) is ensured via Host/Origin/Token validation with localhost-only binding.
+> The system provides a local terminal sharing tool (T09 CLI) that spawns a PTY via Bun.Terminal adapter (T02), relays I/O through a Hono HTTP/WS server (T06) using a binary/text frame protocol (T01), renders in ghostty-web (T07), and provides UI controls for font, readonly, and status (T08). Session management (T04) enforces single-client policy with PTY lifecycle tied to the process and output replay buffer (T03) for reconnection. Security (T05) is ensured via Host/Origin/Token validation with localhost-only binding.
 
 This reconstruction preserves:
 - All design scope (PTY, WS protocol, server, frontend, UI, CLI, security) ✓
-- All key decisions (DEC01–DEC07) ✓
+- All key decisions (DEC01–DEC08) ✓
 - All acceptance criteria intent (AC01–AC11) ✓
 
 **Orphan anchors** (task anchors pointing to non-existent atoms): none ✓

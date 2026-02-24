@@ -113,24 +113,6 @@ describe("UIControls", () => {
     });
   });
 
-  describe("auto-scroll toggle", () => {
-    it("defaults to enabled and can be toggled", () => {
-      const deps = createMockDeps();
-      const controls = new UIControls(deps, 14);
-
-      expect(controls.isAutoScrollEnabled()).toBe(true);
-      expect(controls.getState().autoScroll).toBe(true);
-
-      controls.toggleAutoScroll();
-      expect(controls.isAutoScrollEnabled()).toBe(false);
-      expect(controls.getState().autoScroll).toBe(false);
-
-      controls.toggleAutoScroll();
-      expect(controls.isAutoScrollEnabled()).toBe(true);
-      expect(controls.getState().autoScroll).toBe(true);
-    });
-  });
-
   describe("state change notifications", () => {
     it("notifies listeners on connection state changes", () => {
       const deps = createMockDeps();
@@ -168,18 +150,6 @@ describe("UIControls", () => {
       controls.toggleReadonly();
 
       expect(readonlyStates).toEqual([true, false]);
-    });
-
-    it("notifies listeners on auto-scroll toggle", () => {
-      const deps = createMockDeps();
-      const controls = new UIControls(deps, 14);
-      const scrollStates: boolean[] = [];
-      controls.onStateChange((state) => scrollStates.push(state.autoScroll));
-
-      controls.toggleAutoScroll();
-      controls.toggleAutoScroll();
-
-      expect(scrollStates).toEqual([false, true]);
     });
   });
 });

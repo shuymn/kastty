@@ -1,6 +1,5 @@
 import { FitAddon, init, Terminal } from "ghostty-web";
 import { createGhosttyTerminal } from "./ghostty-adapter.ts";
-import type { TerminalHandle } from "./terminal.ts";
 import { TerminalClient } from "./terminal-client.ts";
 import { UIControls } from "./ui-controls.ts";
 
@@ -48,18 +47,12 @@ function createControlsToolbar(controls: UIControls): HTMLElement {
   readonlyBtn.textContent = "Readonly: OFF";
   readonlyBtn.addEventListener("click", () => controls.toggleReadonly());
 
-  const autoScrollBtn = document.createElement("button");
-  autoScrollBtn.id = "auto-scroll-toggle";
-  autoScrollBtn.textContent = "Auto-scroll: ON";
-  autoScrollBtn.addEventListener("click", () => controls.toggleAutoScroll());
-
-  toolbar.append(status, fontLabel, fontMinus, fontSize, fontPlus, readonlyBtn, autoScrollBtn);
+  toolbar.append(status, fontLabel, fontMinus, fontSize, fontPlus, readonlyBtn);
 
   controls.onStateChange((state) => {
     status.textContent = state.connectionState;
     fontSize.textContent = String(state.fontSize);
     readonlyBtn.textContent = `Readonly: ${state.readonly ? "ON" : "OFF"}`;
-    autoScrollBtn.textContent = `Auto-scroll: ${state.autoScroll ? "ON" : "OFF"}`;
   });
 
   return toolbar;
@@ -103,7 +96,7 @@ async function main() {
     terminalOptions.fontFamily = fontFamily;
   }
 
-  const { handle, onData, onResize, loadAddon, focus, setFontSize, scrollToBottom } = await createGhosttyTerminal(
+  const { handle, onData, onResize, loadAddon, focus, setFontSize } = await createGhosttyTerminal(
     container,
     { init, createTerminal: (opts) => new Terminal(opts) },
     terminalOptions,
@@ -138,19 +131,7 @@ async function main() {
   fitAddon.fit();
   fitAddon.observeResize();
 
-  const wrappedHandle: TerminalHandle = {
-    write(data: Uint8Array) {
-      handle.write(data);
-      if (controls.isAutoScrollEnabled()) {
-        scrollToBottom();
-      }
-    },
-    dispose() {
-      handle.dispose();
-    },
-  };
-
-  client = new TerminalClient({ terminal: wrappedHandle, wsUrl });
+  client = new TerminalClient({ terminal: handle, wsUrl });
 
   client.onStateChange((state) => {
     controls.setConnectionState(state);

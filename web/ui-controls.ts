@@ -9,7 +9,6 @@ export interface UIControlsState {
   connectionState: ConnectionState;
   fontSize: number;
   readonly: boolean;
-  autoScroll: boolean;
 }
 
 export type StateListener = (state: UIControlsState) => void;
@@ -21,7 +20,6 @@ export class UIControls {
   private connectionState: ConnectionState = "disconnected";
   private fontSize: number;
   private readonlyEnabled = false;
-  private autoScroll = true;
   private readonly deps: UIControlsDeps;
   private readonly listeners: StateListener[] = [];
 
@@ -35,7 +33,6 @@ export class UIControls {
       connectionState: this.connectionState,
       fontSize: this.fontSize,
       readonly: this.readonlyEnabled,
-      autoScroll: this.autoScroll,
     };
   }
 
@@ -65,17 +62,8 @@ export class UIControls {
     this.notifyListeners();
   }
 
-  toggleAutoScroll(): void {
-    this.autoScroll = !this.autoScroll;
-    this.notifyListeners();
-  }
-
   isReadonly(): boolean {
     return this.readonlyEnabled;
-  }
-
-  isAutoScrollEnabled(): boolean {
-    return this.autoScroll;
   }
 
   onStateChange(listener: StateListener): void {

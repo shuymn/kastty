@@ -35,7 +35,7 @@ PTY は `Bun.Terminal` ラッパー（T02）で管理し、`TERM=xterm-256color`
 
 ### Frontend
 
-ghostty-web（T07）で端末描画を行い、WS 経由でバイナリ I/O を中継する。リサイズイベントは WS 制御メッセージとして送信し、サーバ経由で PTY をリサイズする。UI コントロール（T08）として接続状態表示、フォントサイズ調整、readonly トグル（UI 側 keydown 遮断 + WS 制御メッセージ）、出力追従 ON/OFF を提供する。
+ghostty-web（T07）で端末描画を行い、WS 経由でバイナリ I/O を中継する。リサイズイベントは WS 制御メッセージとして送信し、サーバ経由で PTY をリサイズする。UI コントロール（T08）として接続状態表示、フォントサイズ調整、readonly トグル（UI 側 keydown 遮断 + WS 制御メッセージ）を提供し、スクロール挙動は ghostty-web 標準に委譲する。
 
 ### CLI & Lifecycle
 
