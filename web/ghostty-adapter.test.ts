@@ -13,6 +13,9 @@ function setup() {
 
   const loadAddonMock = mock((_addon: { activate(terminal: unknown): void; dispose(): void }) => {});
 
+  const scrollLinesMock = mock((_amount: number) => {});
+  const attachCustomWheelEventHandlerMock = mock((_handler: (event: WheelEvent) => boolean) => {});
+
   const terminal = {
     open: openMock,
     write: writeMock,
@@ -36,6 +39,9 @@ function setup() {
     dispose: disposeMock,
     focus: focusMock,
     scrollToBottom: scrollToBottomMock,
+    scrollLines: scrollLinesMock,
+    attachCustomWheelEventHandler: attachCustomWheelEventHandlerMock,
+    rows: 24,
     options: { fontSize: 14 },
   };
 

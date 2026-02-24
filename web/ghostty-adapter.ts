@@ -26,6 +26,9 @@ export interface GhosttyTerminalInstance {
   dispose(): void;
   focus(): void;
   scrollToBottom(): void;
+  scrollLines(amount: number): void;
+  attachCustomWheelEventHandler(handler: (event: WheelEvent) => boolean): void;
+  rows: number;
   options: { fontSize: number; fontFamily?: string };
 }
 
@@ -45,6 +48,41 @@ export interface GhosttyAdapterResult {
   scrollToBottom(): void;
 }
 
+/**
+ * Workaround for ghostty-web rendering bug: fractional viewportY causes
+ * off-by-one in the scrollback/active-buffer boundary during canvas rendering.
+ * We intercept wheel events and use scrollLines() with integer amounts so
+ * viewportY stays integer.
+ */
+function installIntegerScrollHandler(terminal: GhosttyTerminalInstance, container: HTMLElement): void {
+  let pixelAccumulator = 0;
+
+  terminal.attachCustomWheelEventHandler((event: WheelEvent) => {
+    let lines: number;
+
+    if (event.deltaMode === WheelEvent.DOM_DELTA_PIXEL) {
+      const canvas = container.querySelector("canvas");
+      const lineHeight = canvas ? canvas.clientHeight / terminal.rows : 20;
+      pixelAccumulator += event.deltaY;
+      lines = Math.trunc(pixelAccumulator / lineHeight);
+      if (lines !== 0) {
+        pixelAccumulator -= lines * lineHeight;
+      }
+    } else if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) {
+      lines = Math.round(event.deltaY);
+    } else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) {
+      lines = Math.round(event.deltaY * terminal.rows);
+    } else {
+      lines = Math.round(event.deltaY / 33);
+    }
+
+    if (lines !== 0) {
+      terminal.scrollLines(lines);
+    }
+    return true;
+  });
+}
+
 export async function createGhosttyTerminal(
   container: HTMLElement,
   ghostty: GhosttyModule,
@@ -59,6 +97,8 @@ export async function createGhosttyTerminal(
 
   const terminal = ghostty.createTerminal(resolvedOptions);
   terminal.open(container);
+
+  installIntegerScrollHandler(terminal, container);
 
   return {
     handle: {
