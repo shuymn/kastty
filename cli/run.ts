@@ -44,7 +44,7 @@ function resolvePort(requested: number): number {
 
 export async function run(options: CliOptions, deps?: RunDeps): Promise<number> {
   const pty = deps?.createPty?.() ?? new BunPtyAdapter();
-  const replayBuffer = new ReplayBuffer();
+  const replayBuffer = new ReplayBuffer(options.replayBufferBytes);
   const session = new SessionManager(pty, replayBuffer);
   const token = generateToken();
 
@@ -80,7 +80,7 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
   });
 
   const actualPort = server.port ?? port;
-  const params = new URLSearchParams({ t: token });
+  const params = new URLSearchParams({ t: token, scrollback: String(options.scrollback) });
   if (options.fontFamily) {
     params.set("fontFamily", options.fontFamily);
   }

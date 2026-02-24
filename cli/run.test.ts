@@ -31,6 +31,8 @@ function defaultOptions(overrides?: Partial<CliOptions>): CliOptions {
     port: 0,
     open: false,
     fontFamily: "",
+    scrollback: 50000,
+    replayBufferBytes: 8 * 1024 * 1024,
     ...overrides,
   };
 }
@@ -116,6 +118,26 @@ describe("run", () => {
 
     await Bun.sleep(100);
     expect(browserCalls).toHaveLength(0);
+
+    mockPty.emitExit(0);
+    await runPromise;
+  });
+
+  test("includes configured scrollback in browser URL", async () => {
+    const mockPty = new MockPtyAdapter();
+    let readyInfo: ReadyInfo | undefined;
+
+    const runPromise = run(defaultOptions({ scrollback: 120000 }), {
+      createPty: () => mockPty,
+      onReady: (info) => {
+        readyInfo = info;
+      },
+    });
+
+    await Bun.sleep(100);
+    if (readyInfo === undefined) throw new Error("onReady not called");
+    const url = new URL(readyInfo.url);
+    expect(url.searchParams.get("scrollback")).toBe("120000");
 
     mockPty.emitExit(0);
     await runPromise;
