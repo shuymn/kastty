@@ -15,25 +15,16 @@ The name combines "cast" and "tty", with a nod to 「彁（ka）」— a ghost k
 - **Tab title sync** -- browser tab title follows terminal OSC title updates, with state emoji
 - **Single dependency runtime** -- runs entirely on [Bun](https://bun.sh)
 
-## Requirements
-
-- [Bun](https://bun.sh) v1.3.9+
-
 ## Install
 
-```bash
-bun install
-```
+> [!NOTE]
+> kastty supports macOS and Linux only. Windows is not supported.
 
-## Build
-
-Build a single executable:
+### Homebrew
 
 ```bash
-bun run build
+brew install shuymn/tap/kastty
 ```
-
-This produces a `kastty` binary in the project root.
 
 ## Usage
 
@@ -79,7 +70,29 @@ kastty --scrollback 200000 --replay-buffer-bytes 33554432
 kastty --no-open
 ```
 
-## Development
+## Contributing
+
+### Requirements
+
+- [Bun](https://bun.sh) v1.3.9+
+
+### Setup
+
+```bash
+bun install
+```
+
+### Build
+
+Build a single executable:
+
+```bash
+bun run build
+```
+
+This produces a `kastty` binary in the project root.
+
+### Development
 
 ```bash
 # Lint
