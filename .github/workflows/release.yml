@@ -100,6 +100,12 @@ jobs:
 
             chmod +x "$outfile" || true
 
+            # bun build --compile leaves an invalid linker signature on macOS.
+            # Re-sign with ad-hoc identity so Gatekeeper won't reject the binary.
+            if [[ "$target" == bun-darwin-* ]]; then
+              codesign -s - --force "$outfile"
+            fi
+
             if [[ "$target" == "$verify_target" ]]; then
               expected="${RELEASE_TAG}+${short_sha}"
               actual="$("$outfile" --version)"
