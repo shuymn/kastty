@@ -4,6 +4,7 @@ import type { ConnectionState, TerminalHandle } from "./terminal.ts";
 export type StateChangeCallback = (state: ConnectionState) => void;
 export type ExitCallback = (code: number) => void;
 export type TitleChangeCallback = (title: string) => void;
+export type ReadonlyChangeCallback = (enabled: boolean) => void;
 
 const ESC = "\u001b";
 const OSC_PREFIX = `${ESC}]`;
@@ -24,6 +25,7 @@ export class TerminalClient {
   private readonly stateCallbacks: StateChangeCallback[] = [];
   private readonly exitCallbacks: ExitCallback[] = [];
   private readonly titleCallbacks: TitleChangeCallback[] = [];
+  private readonly readonlyCallbacks: ReadonlyChangeCallback[] = [];
   private titleBuffer = "";
   private titleDecoder = new TextDecoder();
 
@@ -81,6 +83,10 @@ export class TerminalClient {
     this.titleCallbacks.push(callback);
   }
 
+  onReadonlyChange(callback: ReadonlyChangeCallback): void {
+    this.readonlyCallbacks.push(callback);
+  }
+
   sendInput(data: Uint8Array | ArrayBuffer): void {
     if (this.ws && this.state === "connected") {
       this.ws.send(data);
@@ -112,7 +118,15 @@ export class TerminalClient {
       const msg = JSON.parse(raw) as ServerMessage;
       switch (msg.t) {
         case "hello":
+          for (const cb of this.readonlyCallbacks) {
+            cb(msg.readonly);
+          }
           this.setState("connected");
+          break;
+        case "readonly":
+          for (const cb of this.readonlyCallbacks) {
+            cb(msg.enabled);
+          }
           break;
         case "exit":
           for (const cb of this.exitCallbacks) {

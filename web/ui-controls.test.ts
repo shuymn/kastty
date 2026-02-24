@@ -111,6 +111,17 @@ describe("UIControls", () => {
       controls.toggleReadonly();
       expect(controls.getState().readonly).toBe(true);
     });
+
+    it("allows readonly state to be updated from remote control messages", () => {
+      const deps = createMockDeps();
+      const controls = new UIControls(deps, 14);
+
+      controls.setReadonly(true);
+
+      expect(controls.isReadonly()).toBe(true);
+      expect(controls.getState().readonly).toBe(true);
+      expect(deps.calls.sendReadonly).toEqual([]);
+    });
   });
 
   describe("state change notifications", () => {

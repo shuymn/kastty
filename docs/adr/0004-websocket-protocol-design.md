@@ -10,7 +10,7 @@ kastty ではブラウザとサーバ間で以下のデータをやり取りす�
 
 - ターミナル入出力（生のバイト列 / 文字列）
 - 制御コマンド（resize、ping/pong 等）
-- サーバイベント（hello、exit、error 等）
+- サーバイベント（hello、readonly、exit、error 等）
 
 これらを単一の WebSocket 接続で効率的に扱うプロトコル設計が必要。また、将来 Go / Rust へ移植する際に Bun 固有の概念がプロトコルに漏れないようにする。
 
@@ -30,6 +30,7 @@ kastty ではブラウザとサーバ間で以下のデータをやり取りす�
 
 サーバ → クライアント:
   {"t":"hello","readonly":false,...}
+  {"t":"readonly","enabled":true}
   {"t":"exit","code":0}
   {"t":"error",...}
   {"t":"pong",...}

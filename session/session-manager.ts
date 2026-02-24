@@ -8,7 +8,7 @@ export interface ClientConnection {
 export class SessionManager {
   private pty: PtyAdapter;
   private replayBuffer: ReplayBuffer;
-  private client: ClientConnection | null = null;
+  private clients: Set<ClientConnection> = new Set();
   private readonlyMode = false;
   private exitCallbacks: ((exitCode: number) => void)[] = [];
 
@@ -20,7 +20,9 @@ export class SessionManager {
   start(command: string, args?: string[], env?: Record<string, string>): void {
     this.pty.onData((data) => {
       this.replayBuffer.append(data);
-      this.client?.send(data);
+      for (const client of this.clients) {
+        client.send(data);
+      }
     });
     this.pty.onExit((code) => {
       for (const cb of this.exitCallbacks) cb(code);
@@ -29,15 +31,12 @@ export class SessionManager {
   }
 
   connect(client: ClientConnection): Uint8Array {
-    if (this.client !== null) {
-      throw new Error("A client is already connected");
-    }
-    this.client = client;
+    this.clients.add(client);
     return this.replayBuffer.getContents();
   }
 
-  disconnect(): void {
-    this.client = null;
+  disconnect(client: ClientConnection): void {
+    this.clients.delete(client);
   }
 
   write(data: string | Uint8Array): void {

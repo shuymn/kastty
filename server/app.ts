@@ -21,13 +21,12 @@ function toArrayBuffer(data: Uint8Array): ArrayBuffer {
 }
 
 export function createServer(options: ServerOptions) {
-  let currentWs: ServerWebSocket | null = null;
+  const wsClients = new Map<ServerWebSocket, ClientConnection>();
 
   options.session.onExit((code) => {
-    if (currentWs) {
-      currentWs.send(JSON.stringify({ t: "exit", code }));
-      currentWs.close();
-      currentWs = null;
+    for (const ws of wsClients.keys()) {
+      ws.send(JSON.stringify({ t: "exit", code }));
+      ws.close();
     }
   });
 
@@ -65,7 +64,7 @@ export function createServer(options: ServerOptions) {
           },
         };
         const replayData = options.session.connect(client);
-        currentWs = ws;
+        wsClients.set(ws, client);
 
         ws.send(JSON.stringify({ t: "hello", readonly: options.session.isReadonly() }));
 
@@ -89,6 +88,9 @@ export function createServer(options: ServerOptions) {
               break;
             case "readonly":
               options.session.setReadonly(msg.enabled);
+              for (const peer of wsClients.keys()) {
+                peer.send(JSON.stringify({ t: "readonly", enabled: msg.enabled }));
+              }
               break;
             case "ping":
               ws.send(JSON.stringify({ t: "pong", ts: msg.ts }));
@@ -100,9 +102,11 @@ export function createServer(options: ServerOptions) {
       }
     },
 
-    close() {
-      options.session.disconnect();
-      currentWs = null;
+    close(ws: ServerWebSocket) {
+      const client = wsClients.get(ws);
+      if (!client) return;
+      options.session.disconnect(client);
+      wsClients.delete(ws);
     },
   };
 

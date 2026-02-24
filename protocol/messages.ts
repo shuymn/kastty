@@ -44,6 +44,7 @@ const PongMessageSchema = z.object({
 
 const ServerMessageSchema = z.discriminatedUnion("t", [
   HelloMessageSchema,
+  ReadonlyMessageSchema,
   ExitMessageSchema,
   ErrorMessageSchema,
   PongMessageSchema,
@@ -56,6 +57,7 @@ export type PingMessage = z.infer<typeof PingMessageSchema>;
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 export type HelloMessage = z.infer<typeof HelloMessageSchema>;
+export type ReadonlyStateMessage = z.infer<typeof ReadonlyMessageSchema>;
 export type ExitMessage = z.infer<typeof ExitMessageSchema>;
 export type ErrorMessage = z.infer<typeof ErrorMessageSchema>;
 export type PongMessage = z.infer<typeof PongMessageSchema>;

@@ -129,6 +129,22 @@ describe("parseServerMessage", () => {
     });
   });
 
+  describe("readonly", () => {
+    it("parses a valid readonly message (enabled)", () => {
+      const msg = parseServerMessage('{"t":"readonly","enabled":true}');
+      expect(msg).toEqual({ t: "readonly", enabled: true });
+    });
+
+    it("parses a valid readonly message (disabled)", () => {
+      const msg = parseServerMessage('{"t":"readonly","enabled":false}');
+      expect(msg).toEqual({ t: "readonly", enabled: false });
+    });
+
+    it("rejects readonly with missing enabled", () => {
+      expect(() => parseServerMessage('{"t":"readonly"}')).toThrow(ProtocolError);
+    });
+  });
+
   describe("exit", () => {
     it("parses a valid exit message", () => {
       const msg = parseServerMessage('{"t":"exit","code":0}');
@@ -193,6 +209,14 @@ describe("parseServerMessage", () => {
       expect(msg.t).toBe("exit");
       if (msg.t === "exit") {
         expect(msg.code).toBe(0);
+      }
+    });
+
+    it("routes readonly to ReadonlyMessage", () => {
+      const msg = parseServerMessage('{"t":"readonly","enabled":true}');
+      expect(msg.t).toBe("readonly");
+      if (msg.t === "readonly") {
+        expect(msg.enabled).toBe(true);
       }
     });
 

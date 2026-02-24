@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Superseded by [0013](0013-multi-client-shared-session.md)
 
 ## Context
 

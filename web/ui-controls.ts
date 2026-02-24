@@ -62,6 +62,12 @@ export class UIControls {
     this.notifyListeners();
   }
 
+  setReadonly(enabled: boolean): void {
+    if (this.readonlyEnabled === enabled) return;
+    this.readonlyEnabled = enabled;
+    this.notifyListeners();
+  }
+
   isReadonly(): boolean {
     return this.readonlyEnabled;
   }

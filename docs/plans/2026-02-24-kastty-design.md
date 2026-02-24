@@ -22,6 +22,7 @@ v1 では Bun + ghostty-web を採用し、`127.0.0.1` のみに bind するロ�
 - 起動 1 コマンドで使える
 - ブラウザが自動で開く（任意）
 - デモ用途に必要な操作（readonly、フォント拡大）がすぐ使える
+- 同じ URL を複数タブで開いて同一セッションを同時表示できる
 - 意図しない第三者アクセスを防ぐ（localhost 用途でも最低限の防御）
 
 ### 技術目標
@@ -37,6 +38,7 @@ v1 では以下をスコープ外とする：
 - インターネット公開 / リモートホスティング用途
 - 認証基盤（OAuth, SSO 等）
 - 複数ユーザー権限管理
+- 複数操作者の同時編集に対する競合解決（ロック / OT / CRDT）
 - 完全なセッション復元（サーバ側 VT パーサによる画面状態の解析・保持）。再接続時の画面復元は出力リプレイバッファで対応する（PTY 仕様を参照）
 - Windows 対応（POSIX PTY 制約のため）
 - tmux 代替のような多ペイン / 多セッション管理
@@ -221,6 +223,7 @@ kastty --open=false           # ブラウザ自動起動を無効化
 |------|------|------|
 | 出力 | バイナリフレーム | PTY からのバイト列 |
 | hello | テキストフレーム (JSON) | 接続確立時のメタ情報（`readonly` 状態を含む） |
+| readonly | テキストフレーム (JSON) | `{"t":"readonly","enabled":true}` |
 | exit | テキストフレーム (JSON) | `{"t":"exit","code":0}` |
 | error | テキストフレーム (JSON) | エラー通知 |
 | pong | テキストフレーム (JSON) | ping 応答 |
@@ -264,7 +267,7 @@ kastty --open=false           # ブラウザ自動起動を無効化
 ```
 cli/        引数解析、起動設定、ブラウザオープン、Bun.serve() 起動
 server/     fetch / websocket ハンドラ、Host/Origin/Token 検証、フォント配信
-session/    セッション管理（1 セッション想定）、PTY ライフサイクル
+session/    セッション管理（1 PTY / 複数クライアント）、PTY ライフサイクル
 pty/        BunPtyAdapter（将来の差し替えポイント）
 web/        フロントエンド（ghostty-web + UI）、index.html は Bun HTML imports で自動バンドル、同梱フォントアセット
 scripts/    ユーティリティスクリプト（Nerd Font 更新等）
@@ -308,7 +311,7 @@ Bun の CSS バンドラが `unicode-range` を破損するため、HTML imports
 
 - 1 つの PTY セッション
 - 出力リプレイバッファ（リングバッファ、上限 1 MB）
-- 接続中クライアント（1 つ）
+- 接続中クライアント（同一トークンで複数）
 - トークン
 - 設定（readonly / shell / command など）
 
@@ -321,11 +324,11 @@ Bun の CSS バンドラが `unicode-range` を破損するため、HTML imports
 
 #### 接続ポリシー
 
-v1 は **単一クライアントのみ**。既接続中の新規接続は拒否する。ただし、`kastty` はブロッキングコマンドとして動作するため、既存のクライアントが切断した後は新たな接続を受け入れる（ブラウザリロードでの再接続に対応）。再接続時は PTY の現在の画面状態を表示する。
+v1 は **同一トークンでの複数クライアント同時接続** を許可する（[ADR-0013](../adr/0013-multi-client-shared-session.md)）。主用途は 1 名操作者による複数タブ / 複数ビュー表示であり、同時操作者の競合解決は行わない。PTY 出力は全クライアントへ配信し、クライアント切断時は該当接続のみを外して PTY は維持する。
 
 #### readonly 制御
 
-readonly はクライアント UI（keydown 遮断）とサーバ（WS 入力メッセージ破棄）の二重ガードで実装する。
+readonly はクライアント UI（keydown 遮断）とサーバ（WS 入力メッセージ破棄）の二重ガードで実装する。切替時はサーバから全クライアントへ `readonly` 制御メッセージを配信し、UI 状態を同期する。
 
 ### エラー処理 / 終了処理
 
@@ -416,7 +419,7 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 |-----|----------|--------|
 | [0001](../adr/0001-tech-stack-bun-hono-ghostty-web.md) | v1 の技術スタックとして Bun + Hono + ghostty-web を採用 | Accepted (Web framework 部分は 0008 により Superseded) |
 | [0002](../adr/0002-localhost-only-security-model.md) | localhost 限定 + Host/Origin/Token 検証によるセキュリティモデル | Proposed |
-| [0003](../adr/0003-single-client-connection.md) | v1 では単一クライアント接続のみサポート | Proposed |
+| [0003](../adr/0003-single-client-connection.md) | v1 では単一クライアント接続のみサポート | Superseded by 0013 |
 | [0004](../adr/0004-websocket-protocol-design.md) | WebSocket プロトコルで制御メッセージ（JSON）と入出力データ（生データ）を分離 | Proposed |
 | [0005](../adr/0005-blocking-command-pty-lifecycle.md) | kastty をブロッキングコマンドとし、PTY ライフサイクルをプロセスに紐付け | Proposed |
 | [0006](../adr/0006-readonly-double-guard.md) | readonly を UI + サーバの二重ガードで実装 | Proposed |
@@ -426,6 +429,7 @@ v1 では kastty プロセスが生きている間 PTY を維持し、再接続�
 | [0010](../adr/0010-bundled-fonts-m-plus-1-code-and-nerd-fonts.md) | デフォルトフォントとして M PLUS 1 Code + Nerd Fonts Symbols を同梱・配信 | Proposed |
 | [0011](../adr/0011-ghostty-web-integer-scroll-workaround.md) | ghostty-web のスクロール描画バグに対し整数スクロールを適用 | Accepted |
 | [0012](../adr/0012-remove-auto-scroll-toggle.md) | ghostty-web と競合する auto-scroll トグルを廃止 | Accepted |
+| [0013](../adr/0013-multi-client-shared-session.md) | 同一トークンで複数クライアント接続を許可し単一 PTY セッションを共有 | Accepted |
 
 ## Open Questions
 
@@ -435,6 +439,7 @@ All resolved. 決定内容は Decision Log の ADR を参照。
 |------|------|-----|
 | WS 制御メッセージの形式 | JSON 固定（将来必要時に再検討） | [0004](../adr/0004-websocket-protocol-design.md) |
 | クライアント切断時の PTY | kastty プロセスに紐付け。ブラウザ切断では終了しない | [0005](../adr/0005-blocking-command-pty-lifecycle.md) |
+| 複数タブ接続ポリシー | 同一トークンで複数接続を許可し、単一 PTY を共有 | [0013](../adr/0013-multi-client-shared-session.md) |
 | readonly の実装範囲 | UI + サーバの二重ガード | [0006](../adr/0006-readonly-double-guard.md) |
 | ghostty-web fallback | v1 は ghostty-web 一本。adapter インターフェースも不要（YAGNI） | — |
 | トークンの受け渡し方法 | URL クエリパラメータ（`?t=<token>`） | [0007](../adr/0007-url-query-token.md) |
@@ -452,3 +457,5 @@ All resolved. 決定内容は Decision Log の ADR を参照。
 9. PTY プロセス終了時にクライアントへ通知される
 10. ブラウザ切断後もPTY は維持され、リロードで再接続・現在の画面が表示される
 11. `kastty` プロセスはフォアグラウンドでブロックし、`Ctrl+C` または PTY プロセス終了で停止する
+12. 同じ `?t=<token>` URL を複数タブで開いた場合、同じ PTY 出力が各タブへ配信される
+13. いずれかのタブで readonly を切り替えると、接続中の他タブ UI にも反映される

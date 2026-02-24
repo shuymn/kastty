@@ -156,6 +156,10 @@ async function main() {
     updateDocumentTitle();
   });
 
+  client.onReadonlyChange((enabled) => {
+    controls.setReadonly(enabled);
+  });
+
   const encoder = new TextEncoder();
   onData((data) => {
     if (!controls.isReadonly()) {

@@ -61,13 +61,34 @@ describe("SessionManager", () => {
     return { pty, replayBuffer, session };
   }
 
-  it("rejects second client when one is already connected", () => {
-    const { session } = setup();
+  it("accepts multiple clients and forwards PTY output to all of them", () => {
+    const { pty, session } = setup();
     const clientA = createMockClient();
     const clientB = createMockClient();
+    const data = new Uint8Array([1, 2, 3]);
 
     session.connect(clientA);
-    expect(() => session.connect(clientB)).toThrow();
+    session.connect(clientB);
+    pty.simulateData(data);
+
+    expect(clientA.received).toEqual([data]);
+    expect(clientB.received).toEqual([data]);
+  });
+
+  it("stops forwarding to a disconnected client", () => {
+    const { pty, session } = setup();
+    const clientA = createMockClient();
+    const clientB = createMockClient();
+    const data = new Uint8Array([4, 5, 6]);
+
+    session.connect(clientA);
+    session.connect(clientB);
+    session.disconnect(clientA);
+
+    pty.simulateData(data);
+
+    expect(clientA.received).toEqual([]);
+    expect(clientB.received).toEqual([data]);
   });
 
   it("accepts a new client after previous client disconnects", () => {
@@ -76,7 +97,7 @@ describe("SessionManager", () => {
     const clientB = createMockClient();
 
     session.connect(clientA);
-    session.disconnect();
+    session.disconnect(clientA);
     expect(() => session.connect(clientB)).not.toThrow();
   });
 
@@ -98,7 +119,7 @@ describe("SessionManager", () => {
     const clientA = createMockClient();
     session.connect(clientA);
     pty.simulateData(new Uint8Array([10, 20, 30]));
-    session.disconnect();
+    session.disconnect(clientA);
 
     const clientB = createMockClient();
     const replay = session.connect(clientB);
@@ -140,7 +161,7 @@ describe("SessionManager", () => {
     const { pty, session } = setup();
     const client = createMockClient();
     session.connect(client);
-    session.disconnect();
+    session.disconnect(client);
 
     expect(pty.destroyed).toBe(false);
     expect(pty.started).toBe(true);
