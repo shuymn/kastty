@@ -44,6 +44,18 @@
   ],
   "packageRules": [
     {
+      "description": "Group .bun-version updates",
+      "matchManagers": ["bun-version"],
+      "groupName": "bun",
+      "groupSlug": "bun"
+    },
+    {
+      "description": "Group @types/bun updates",
+      "matchPackageNames": ["@types/bun"],
+      "groupName": "bun",
+      "groupSlug": "bun"
+    },
+    {
       "description": "Automerge minor/patch updates for non-major versions",
       "matchUpdateTypes": ["minor", "patch"],
       "matchCurrentVersion": ">=1.0.0",
