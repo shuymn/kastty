@@ -96,8 +96,46 @@ describe("parseCliArgs", () => {
     }
   });
 
+  test("--version throws CliHelpError with version output", () => {
+    expect(() => parseCliArgs(["--version"])).toThrow(CliHelpError);
+
+    try {
+      parseCliArgs(["--version"]);
+    } catch (error: unknown) {
+      if (error instanceof CliHelpError) {
+        expect(error.output).toBe("dev+HEAD\n");
+      } else {
+        throw error;
+      }
+    }
+  });
+
+  test("--version includes short sha when KASTTY_SHORT_SHA is set", () => {
+    const previous = process.env.KASTTY_SHORT_SHA;
+    process.env.KASTTY_SHORT_SHA = "abcdef1234567890";
+
+    try {
+      expect(() => parseCliArgs(["--version"])).toThrow(CliHelpError);
+      try {
+        parseCliArgs(["--version"]);
+      } catch (error: unknown) {
+        if (error instanceof CliHelpError) {
+          expect(error.output).toBe("dev+abcdef1\n");
+        } else {
+          throw error;
+        }
+      }
+    } finally {
+      if (previous === undefined) {
+        delete process.env.KASTTY_SHORT_SHA;
+      } else {
+        process.env.KASTTY_SHORT_SHA = previous;
+      }
+    }
+  });
+
   test("unknown leading option is rejected", () => {
-    expect(() => parseCliArgs(["--version"])).toThrow(CliParseError);
+    expect(() => parseCliArgs(["--totally-unknown-option"])).toThrow(CliParseError);
   });
 
   test("dashed arguments after -- are passed through as command args", () => {

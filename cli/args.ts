@@ -1,6 +1,9 @@
 import { Command, CommanderError } from "commander";
 import { DEFAULT_SCROLLBACK_LINES, toGhosttyScrollbackBytes } from "../config/scrollback.ts";
 
+declare const KASTTY_VERSION: string | undefined;
+declare const KASTTY_SHORT_SHA: string | undefined;
+
 function parsePositiveInt(value: string | undefined, fallback: number): number {
   if (value === undefined) return fallback;
   const parsed = Number.parseInt(value, 10);
@@ -47,9 +50,40 @@ function defaultShell(): string {
   return process.env.SHELL || "/bin/sh";
 }
 
+function firstNonEmpty(values: Array<string | undefined>): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed.length > 0) return trimmed;
+    }
+  }
+  return undefined;
+}
+
+function toShortSha(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  const short = value.slice(0, 7);
+  if (!/^[0-9a-fA-F]{7}$/.test(short)) return undefined;
+  return short.toLowerCase();
+}
+
+function cliVersion(): string {
+  const buildVersion = typeof KASTTY_VERSION !== "undefined" ? KASTTY_VERSION : undefined;
+  const buildShortSha = typeof KASTTY_SHORT_SHA !== "undefined" ? KASTTY_SHORT_SHA : undefined;
+  const version = firstNonEmpty([buildVersion, process.env.KASTTY_VERSION]) ?? "dev";
+  const shortSha = toShortSha(firstNonEmpty([buildShortSha, process.env.KASTTY_SHORT_SHA]));
+  if (shortSha !== undefined) {
+    const separator = version.includes("+") ? "." : "+";
+    return `${version}${separator}${shortSha}`;
+  }
+  if (version === "dev") return "dev+HEAD";
+  return version;
+}
+
 export function parseCliArgs(argv: string[]): CliOptions {
   let stdout = "";
   let stderr = "";
+  const version = cliVersion();
   const program = new Command();
   program
     .name("kastty")
@@ -74,13 +108,14 @@ export function parseCliArgs(argv: string[]): CliOptions {
     .option("--scrollback <lines>", "Terminal scrollback lines", String(DEFAULT_SCROLLBACK_LINES))
     .option("--replay-buffer-bytes <n>", "Replay buffer size in bytes")
     .option("--open", "Auto-open browser")
-    .option("--no-open", "Disable browser auto-open");
+    .option("--no-open", "Disable browser auto-open")
+    .version(version);
 
   try {
     program.parse(argv, { from: "user" });
   } catch (error: unknown) {
     if (error instanceof CommanderError) {
-      if (error.code === "commander.helpDisplayed") {
+      if (error.code === "commander.helpDisplayed" || error.code === "commander.version") {
         throw new CliHelpError(stdout || stderr, error.exitCode);
       }
       throw new CliParseError(stderr || error.message, error.exitCode);
