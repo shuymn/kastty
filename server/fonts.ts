@@ -1,6 +1,8 @@
-import { dirname, join } from "node:path";
+// @ts-expect-error -- Bun resolves this CSS file as plain text at compile time
+import mPlusCss from "@fontsource-variable/m-plus-1-code/index.css" with { type: "text" };
 // @ts-expect-error -- Bun resolves this to an embedded asset path at compile time
 import nerdFontEmbedded from "../web/fonts/SymbolsNerdFontMono-Regular.woff2" with { type: "file" };
+import { mPlusFontFiles } from "./m-plus-font-files.ts";
 
 export interface FontAssets {
   css: string;
@@ -21,9 +23,7 @@ const NERD_FONT_FILENAME = "SymbolsNerdFontMono-Regular.woff2";
  * a single WOFF2 with its own @font-face declaration appended to the CSS.
  */
 export async function loadFontAssets(): Promise<FontAssets> {
-  const pkgDir = dirname(require.resolve("@fontsource-variable/m-plus-1-code"));
-  const cssPath = join(pkgDir, "index.css");
-  const rawCss = await Bun.file(cssPath).text();
+  const rawCss = mPlusCss;
 
   const urlPattern = /url\(\.\/files\/([^)]+)\)/g;
   const filenames = new Set<string>();
@@ -34,7 +34,11 @@ export async function loadFontAssets(): Promise<FontAssets> {
   const files = new Map<string, ArrayBuffer>();
   await Promise.all([
     ...[...filenames].map(async (name) => {
-      const buf = await Bun.file(join(pkgDir, "files", name)).arrayBuffer();
+      const embedded = mPlusFontFiles.get(name);
+      if (!embedded) {
+        throw new Error(`Missing embedded M PLUS font asset: ${name}`);
+      }
+      const buf = await Bun.file(embedded).arrayBuffer();
       files.set(name, buf);
     }),
     (async () => {

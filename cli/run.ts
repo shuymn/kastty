@@ -1,4 +1,5 @@
-import { dirname, join } from "node:path";
+// @ts-expect-error -- Bun resolves this WASM file to an embedded asset path at compile time
+import ghosttyWasmEmbedded from "ghostty-web/ghostty-vt.wasm" with { type: "file" };
 import { ReplayBuffer } from "../buffer/replay-buffer.ts";
 import { BunPtyAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
@@ -26,8 +27,7 @@ async function defaultOpenBrowser(url: string): Promise<void> {
 }
 
 async function loadWasm(): Promise<ArrayBuffer> {
-  const wasmPath = join(dirname(require.resolve("ghostty-web")), "ghostty-vt.wasm");
-  return Bun.file(wasmPath).arrayBuffer();
+  return Bun.file(ghosttyWasmEmbedded).arrayBuffer();
 }
 
 function resolvePort(requested: number): number {
