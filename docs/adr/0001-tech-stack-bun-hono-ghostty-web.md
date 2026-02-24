@@ -37,7 +37,7 @@ v1 の技術スタックとして以下を採用する：
 
 - `Bun.Terminal` は POSIX 限定のため Windows 非対応
 - Bun / ghostty-web はどちらも比較的新しく、API 変更リスクがある
-- ghostty-web で特定 TUI が崩れる可能性がある
+- ghostty-web で特定 TUI が崩れる可能性がある（実際にスクロール描画バグが確認され、ワークアラウンドを適用済み。詳細は [0011](0011-ghostty-web-integer-scroll-workaround.md)）
 
 ### Neutral
 
