@@ -38,7 +38,7 @@ This produces a `kastty` binary in the project root.
 ## Usage
 
 ```bash
-kastty [options] [command [args...]]
+kastty [options] [-- command [args...]]
 ```
 
 When no command is specified, kastty launches your default shell (`$SHELL`).
@@ -52,7 +52,8 @@ When no command is specified, kastty launches your default shell (`$SHELL`).
 | `--font-family <name>` | - | Terminal font family |
 | `--scrollback <lines>` | `50000` | Requested terminal scrollback lines in browser (approximate) |
 | `--replay-buffer-bytes <n>` | auto (from `--scrollback`) | Replay buffer size for reconnect restore |
-| `--open` / `--open=false` | `true` | Auto-open browser |
+| `--open` / `--no-open` | `true` | Auto-open browser |
+| `-h, --help` | - | Show CLI help |
 
 `--scrollback` is applied as an internal capacity limit in ghostty-web, so the visible line count varies by output width and escape sequences.
 
@@ -66,13 +67,16 @@ kastty
 kastty --readonly --port 8080
 
 # Run a specific command with a custom font
-kastty --font-family "Fira Code" htop
+kastty --font-family "Fira Code" -- htop
+
+# Pass flags to the target command
+kastty -- htop -d 10
 
 # Increase local scrollback and reconnect replay history
 kastty --scrollback 200000 --replay-buffer-bytes 33554432
 
 # Start without opening the browser
-kastty --open=false
+kastty --no-open
 ```
 
 ## Development
