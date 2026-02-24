@@ -13,33 +13,123 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
-    name: Verify
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
 
     steps:
+      - name: Check if CI should be skipped
+        id: check-branch
+        run: |
+          if [[ "${GITHUB_HEAD_REF}" =~ ^tagpr-from-v ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping CI for tagpr branch: ${GITHUB_HEAD_REF}"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Running CI for branch: ${GITHUB_HEAD_REF}"
+          fi
+
       - name: Checkout
+        if: steps.check-branch.outputs.skip != 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
 
       - name: Setup Bun
+        if: steps.check-branch.outputs.skip != 'true'
         uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2.1.2
 
       - name: Install dependencies
+        if: steps.check-branch.outputs.skip != 'true'
         run: bun install --frozen-lockfile
 
       - name: Lint
+        if: steps.check-branch.outputs.skip != 'true'
         run: bun run lint
 
       - name: Typecheck
+        if: steps.check-branch.outputs.skip != 'true'
         run: bun run typecheck
 
-      - name: Test
-        run: bun test
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check if CI should be skipped
+        id: check-branch
+        run: |
+          if [[ "${GITHUB_HEAD_REF}" =~ ^tagpr-from-v ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping CI for tagpr branch: ${GITHUB_HEAD_REF}"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Running CI for branch: ${GITHUB_HEAD_REF}"
+          fi
+
+      - name: Checkout
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2.1.2
+
+      - name: Install dependencies
+        if: steps.check-branch.outputs.skip != 'true'
+        run: bun install --frozen-lockfile
 
       - name: Build
+        if: steps.check-branch.outputs.skip != 'true'
         run: bun run build
+
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check if CI should be skipped
+        id: check-branch
+        run: |
+          if [[ "${GITHUB_HEAD_REF}" =~ ^tagpr-from-v ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Skipping CI for tagpr branch: ${GITHUB_HEAD_REF}"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "Running CI for branch: ${GITHUB_HEAD_REF}"
+          fi
+
+      - name: Checkout
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: oven-sh/setup-bun@3d267786b128fe76c2f16a390aa2448b815359f3 # v2.1.2
+
+      - name: Install dependencies
+        if: steps.check-branch.outputs.skip != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Test
+        if: steps.check-branch.outputs.skip != 'true'
+        run: bun test
