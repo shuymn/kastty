@@ -1,4 +1,5 @@
 import { FitAddon, init, Terminal } from "ghostty-web";
+import { DEFAULT_SCROLLBACK_LINES, toGhosttyScrollbackBytes } from "../config/scrollback.ts";
 import { createGhosttyTerminal } from "./ghostty-adapter.ts";
 import { formatTabTitle } from "./tab-title.ts";
 import type { ConnectionState } from "./terminal.ts";
@@ -7,6 +8,13 @@ import { UIControls } from "./ui-controls.ts";
 
 const DEFAULT_FONT_SIZE = 14;
 const DEFAULT_FONT_FAMILY = '"M PLUS 1 Code Variable", "Symbols Nerd Font Mono", monospace';
+
+function parsePositiveInt(value: string | null): number | null {
+  if (!value) return null;
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) return null;
+  return parsed;
+}
 
 function createControlsToolbar(controls: UIControls): HTMLElement {
   const toolbar = document.createElement("div");
@@ -89,9 +97,11 @@ async function main() {
   const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const wsUrl = `${wsProtocol}//${window.location.host}/ws?t=${token}`;
 
+  const requestedScrollbackLines = parsePositiveInt(params.get("scrollback")) ?? DEFAULT_SCROLLBACK_LINES;
   const terminalOptions: Record<string, unknown> = {
     fontSize: DEFAULT_FONT_SIZE,
     fontFamily: DEFAULT_FONT_FAMILY,
+    scrollback: toGhosttyScrollbackBytes(requestedScrollbackLines),
   };
   const fontFamily = params.get("fontFamily");
   if (fontFamily) {
