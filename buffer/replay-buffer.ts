@@ -1,4 +1,4 @@
-const DEFAULT_CAPACITY = 1024 * 1024; // 1 MB
+export const DEFAULT_REPLAY_BUFFER_CAPACITY = 8 * 1024 * 1024; // 8 MB
 
 export class ReplayBuffer {
   private buf: Uint8Array;
@@ -6,7 +6,7 @@ export class ReplayBuffer {
   private head = 0;
   private size = 0;
 
-  constructor(capacity: number = DEFAULT_CAPACITY) {
+  constructor(capacity: number = DEFAULT_REPLAY_BUFFER_CAPACITY) {
     this.capacity = capacity;
     this.buf = new Uint8Array(capacity);
   }

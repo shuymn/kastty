@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ReplayBuffer } from "./replay-buffer.ts";
+import { DEFAULT_REPLAY_BUFFER_CAPACITY, ReplayBuffer } from "./replay-buffer.ts";
 
 describe("ReplayBuffer", () => {
   it("stores data up to capacity", () => {
@@ -79,14 +79,15 @@ describe("ReplayBuffer", () => {
     expect(contents).toEqual(new Uint8Array([4, 5]));
   });
 
-  it("defaults to 1 MB capacity", () => {
+  it("defaults to 8 MB capacity", () => {
     const buf = new ReplayBuffer();
     const chunk = new Uint8Array(1024);
-    for (let i = 0; i < 1024; i++) {
+    const writes = DEFAULT_REPLAY_BUFFER_CAPACITY / chunk.length;
+    for (let i = 0; i < writes; i++) {
       buf.append(chunk);
     }
     const contents = buf.getContents();
-    expect(contents.length).toBe(1024 * 1024);
+    expect(contents.length).toBe(DEFAULT_REPLAY_BUFFER_CAPACITY);
   });
 
   it("handles multiple small appends that together exceed capacity", () => {
