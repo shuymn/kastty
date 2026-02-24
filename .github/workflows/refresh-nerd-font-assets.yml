@@ -1,0 +1,101 @@
+name: Refresh Nerd Font Assets
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+    paths:
+      - scripts/update-nerd-font.sh
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-nerd-font-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  refresh-nerd-font-assets:
+    runs-on: ubuntu-latest
+    if: startsWith(github.head_ref, 'renovate/')
+    timeout-minutes: 20
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create app token
+        id: app-token
+        uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Check if target versions changed
+        id: check-target
+        run: |
+          set -euo pipefail
+
+          git fetch origin "${{ github.base_ref }}" --depth=1
+          if git diff --unified=0 "origin/${{ github.base_ref }}"...HEAD -- scripts/update-nerd-font.sh \
+            | grep -Eq '^[+-](NERD_FONTS_VERSION|FONTTOOLS_VERSION|BROTLI_VERSION)='; then
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup uv
+        if: steps.check-target.outputs.run == 'true'
+        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+
+      - name: Update Nerd Font assets
+        if: steps.check-target.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+          ./scripts/update-nerd-font.sh
+
+      - name: Commit and push refreshed assets
+        if: steps.check-target.outputs.run == 'true'
+        env:
+          PUSH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          if [[ -z "$(git status --porcelain -- web/fonts/SymbolsNerdFontMono-Regular.woff2 web/fonts/NerdFontsSymbolsOnly-LICENSE)" ]]; then
+            echo "No Nerd Font asset changes detected"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/fonts/SymbolsNerdFontMono-Regular.woff2 web/fonts/NerdFontsSymbolsOnly-LICENSE
+          git commit -m "chore: refresh Nerd Font assets"
+
+          for attempt in 1 2 3; do
+            if git push "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:"${GITHUB_HEAD_REF:?}"; then
+              exit 0
+            fi
+
+            if [[ "${attempt}" -eq 3 ]]; then
+              echo "Push failed after ${attempt} attempts"
+              exit 1
+            fi
+
+            echo "Push rejected; rebasing on origin/${GITHUB_HEAD_REF:?} and retrying..."
+            git fetch origin "${GITHUB_HEAD_REF:?}"
+            git rebase "origin/${GITHUB_HEAD_REF:?}"
+          done
