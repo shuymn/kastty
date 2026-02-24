@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { DEFAULT_SCROLLBACK_LINES, toGhosttyScrollbackBytes } from "../config/scrollback.ts";
 import { parseCliArgs } from "./args.ts";
 
 describe("parseCliArgs", () => {
@@ -35,6 +36,36 @@ describe("parseCliArgs", () => {
     expect(opts.readonly).toBe(false);
     expect(opts.port).toBe(0);
     expect(opts.open).toBe(true);
+  });
+
+  test("--scrollback sets terminal scrollback lines", () => {
+    const opts = parseCliArgs(["--scrollback", "120000"]);
+    expect(opts.scrollback).toBe(120000);
+  });
+
+  test("defaults scrollback to configured constant", () => {
+    const opts = parseCliArgs([]);
+    expect(opts.scrollback).toBe(DEFAULT_SCROLLBACK_LINES);
+  });
+
+  test("--replay-buffer-bytes sets replay buffer size", () => {
+    const opts = parseCliArgs(["--replay-buffer-bytes", "16777216"]);
+    expect(opts.replayBufferBytes).toBe(16777216);
+  });
+
+  test("defaults replay buffer size from default scrollback", () => {
+    const opts = parseCliArgs([]);
+    expect(opts.replayBufferBytes).toBe(toGhosttyScrollbackBytes(DEFAULT_SCROLLBACK_LINES));
+  });
+
+  test("derives replay buffer size from --scrollback when replay option is omitted", () => {
+    const opts = parseCliArgs(["--scrollback", "120000"]);
+    expect(opts.replayBufferBytes).toBe(toGhosttyScrollbackBytes(120000));
+  });
+
+  test("prioritizes explicit --replay-buffer-bytes over derived value", () => {
+    const opts = parseCliArgs(["--scrollback", "120000", "--replay-buffer-bytes", "16777216"]);
+    expect(opts.replayBufferBytes).toBe(16777216);
   });
 
   test("--font-family sets terminal font family", () => {
