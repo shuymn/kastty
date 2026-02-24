@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { BunPtyAdapter } from "./adapter.ts";
 
+const noHistoryEnv = { HISTFILE: "/dev/null", HISTSIZE: "0" };
+
 describe("BunPtyAdapter", () => {
   let adapter: BunPtyAdapter;
 
@@ -32,7 +34,7 @@ describe("BunPtyAdapter", () => {
     const output: string[] = [];
     adapter.onData((data: Uint8Array) => output.push(new TextDecoder().decode(data)));
 
-    adapter.start("/bin/sh", []);
+    adapter.start("/bin/sh", [], noHistoryEnv);
 
     await Bun.sleep(500);
 
@@ -53,7 +55,7 @@ describe("BunPtyAdapter", () => {
     const output: string[] = [];
     adapter.onData((data: Uint8Array) => output.push(new TextDecoder().decode(data)));
 
-    adapter.start("/bin/sh", []);
+    adapter.start("/bin/sh", [], noHistoryEnv);
 
     await Bun.sleep(500);
     output.length = 0;
