@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Fetch the latest NerdFontsSymbolsOnly release, convert to WOFF2,
+# Fetch the pinned NerdFontsSymbolsOnly release (or a CLI-specified version),
+# convert to WOFF2,
 # and place it in web/fonts/.
 #
-# Requirements: curl, tar, uv (for fonttools/brotli)
+# Requirements: gh, tar, uv (for fonttools/brotli)
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEST_DIR="$REPO_ROOT/web/fonts"
 FONT_NAME="SymbolsNerdFontMono-Regular"
+NERD_FONTS_REPO="ryanoasis/nerd-fonts"
+NERD_FONTS_ARCHIVE="NerdFontsSymbolsOnly.tar.xz"
 
+NERD_FONTS_VERSION="3.4.0"
 FONTTOOLS_VERSION="4.61.1"
 BROTLI_VERSION="1.2.0"
 
@@ -17,9 +21,7 @@ BROTLI_VERSION="1.2.0"
 if [[ "${1:-}" =~ ^v?[0-9] ]]; then
   VERSION="${1#v}"
 else
-  echo "Fetching latest Nerd Fonts release..."
-  VERSION=$(curl -sI "https://github.com/ryanoasis/nerd-fonts/releases/latest" \
-    | grep -i '^location:' | sed 's|.*/v||;s/[[:space:]]//g')
+  VERSION="$NERD_FONTS_VERSION"
 fi
 echo "Version: v${VERSION}"
 
@@ -27,10 +29,12 @@ WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
 # Download & extract
-URL="https://github.com/ryanoasis/nerd-fonts/releases/download/v${VERSION}/NerdFontsSymbolsOnly.tar.xz"
-echo "Downloading ${URL}..."
-curl -sL "$URL" -o "$WORK/archive.tar.xz"
-tar -xf "$WORK/archive.tar.xz" -C "$WORK"
+echo "Downloading ${NERD_FONTS_ARCHIVE} from ${NERD_FONTS_REPO} v${VERSION}..."
+gh release download "v${VERSION}" \
+  --repo "$NERD_FONTS_REPO" \
+  --pattern "$NERD_FONTS_ARCHIVE" \
+  --output - \
+  | tar -xJf - -C "$WORK"
 
 # Convert TTF → WOFF2 using fonttools via uv
 echo "Converting TTF to WOFF2..."
