@@ -74,7 +74,7 @@ kastty --no-open
 
 ### Requirements
 
-- [Bun](https://bun.sh) v1.3.9+
+- [Bun](https://bun.sh)
 
 ### Setup
 
