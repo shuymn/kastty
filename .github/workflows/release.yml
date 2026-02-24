@@ -115,22 +115,26 @@ jobs:
               fi
             fi
 
-            tar -C dist -czf "dist/$archive_name" kastty
+            if [[ "$archive_name" == *.zip ]]; then
+              (cd dist && zip "$archive_name" kastty)
+            else
+              tar -C dist -czf "dist/$archive_name" kastty
+            fi
             rm -f "$outfile"
           }
 
-          build_target "bun-darwin-arm64" "kastty-darwin-arm64.tar.gz"
-          build_target "bun-darwin-x64" "kastty-darwin-x64.tar.gz"
-          build_target "bun-linux-arm64" "kastty-linux-arm64.tar.gz"
-          build_target "bun-linux-x64" "kastty-linux-x64.tar.gz"
+          build_target "bun-darwin-arm64" "kastty_${RELEASE_TAG}_darwin_arm64.zip"
+          build_target "bun-darwin-x64"   "kastty_${RELEASE_TAG}_darwin_amd64.zip"
+          build_target "bun-linux-arm64"  "kastty_${RELEASE_TAG}_linux_arm64.tar.gz"
+          build_target "bun-linux-x64"    "kastty_${RELEASE_TAG}_linux_amd64.tar.gz"
 
           (
             cd dist
             shasum -a 256 \
-              kastty-darwin-arm64.tar.gz \
-              kastty-darwin-x64.tar.gz \
-              kastty-linux-arm64.tar.gz \
-              kastty-linux-x64.tar.gz > checksums.txt
+              "kastty_${RELEASE_TAG}_darwin_arm64.zip" \
+              "kastty_${RELEASE_TAG}_darwin_amd64.zip" \
+              "kastty_${RELEASE_TAG}_linux_arm64.tar.gz" \
+              "kastty_${RELEASE_TAG}_linux_amd64.tar.gz" > checksums.txt
           )
 
       - name: Upload assets to draft release
@@ -141,7 +145,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release upload "$RELEASE_TAG" dist/*.tar.gz dist/checksums.txt --clobber
+          gh release upload "$RELEASE_TAG" dist/*.zip dist/*.tar.gz dist/checksums.txt --clobber
 
       - name: Publish draft release
         env:
