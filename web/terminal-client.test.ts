@@ -215,6 +215,49 @@ describe("TerminalClient", () => {
     expect(terminal.written[0]).toEqual(replayData);
   });
 
+  it("extracts terminal title updates from OSC frames", async () => {
+    const terminal = new MockTerminal();
+    const titles: string[] = [];
+    const c = new TerminalClient({
+      terminal,
+      wsUrl: `ws://127.0.0.1:${server.port}`,
+    });
+    client = c;
+    c.onTitleChange((title) => titles.push(title));
+
+    c.connect();
+    await server.waitForConnection();
+    server.sendHello();
+    await waitFor(() => c.getState() === "connected");
+
+    server.sendBinary(new TextEncoder().encode("\u001b]2;repo/kastty\u0007"));
+
+    await waitFor(() => titles.length > 0);
+    expect(titles).toEqual(["repo/kastty"]);
+  });
+
+  it("extracts terminal title when OSC sequence is split across frames", async () => {
+    const terminal = new MockTerminal();
+    const titles: string[] = [];
+    const c = new TerminalClient({
+      terminal,
+      wsUrl: `ws://127.0.0.1:${server.port}`,
+    });
+    client = c;
+    c.onTitleChange((title) => titles.push(title));
+
+    c.connect();
+    await server.waitForConnection();
+    server.sendHello();
+    await waitFor(() => c.getState() === "connected");
+
+    server.sendBinary(new TextEncoder().encode("\u001b]2;repo/ka"));
+    server.sendBinary(new TextEncoder().encode("stty\u001b\\"));
+
+    await waitFor(() => titles.length > 0);
+    expect(titles).toEqual(["repo/kastty"]);
+  });
+
   it("tracks connection state transitions (connecting → connected → disconnected)", async () => {
     const terminal = new MockTerminal();
     const states: ConnectionState[] = [];

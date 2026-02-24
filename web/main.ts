@@ -1,5 +1,7 @@
 import { FitAddon, init, Terminal } from "ghostty-web";
 import { createGhosttyTerminal } from "./ghostty-adapter.ts";
+import { formatTabTitle } from "./tab-title.ts";
+import type { ConnectionState } from "./terminal.ts";
 import { TerminalClient } from "./terminal-client.ts";
 import { UIControls } from "./ui-controls.ts";
 
@@ -105,6 +107,12 @@ async function main() {
   let client: TerminalClient | null = null;
   let lastCols = 0;
   let lastRows = 0;
+  let connectionState: ConnectionState = "disconnected";
+  let terminalTitle: string | null = null;
+
+  const updateDocumentTitle = () => {
+    document.title = formatTabTitle(connectionState, terminalTitle);
+  };
 
   onResize((cols, rows) => {
     lastCols = cols;
@@ -132,12 +140,20 @@ async function main() {
   fitAddon.observeResize();
 
   client = new TerminalClient({ terminal: handle, wsUrl });
+  updateDocumentTitle();
 
   client.onStateChange((state) => {
+    connectionState = state;
     controls.setConnectionState(state);
+    updateDocumentTitle();
     if (state === "connected" && lastCols > 0 && lastRows > 0) {
       client?.sendResize(lastCols, lastRows);
     }
+  });
+
+  client.onTitleChange((title) => {
+    terminalTitle = title;
+    updateDocumentTitle();
   });
 
   const encoder = new TextEncoder();
