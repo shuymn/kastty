@@ -61,6 +61,8 @@ function installIntegerScrollHandler(terminal: GhosttyTerminalInstance, containe
     let lines: number;
 
     if (event.deltaMode === WheelEvent.DOM_DELTA_PIXEL) {
+      // Query every time: ghostty-web may replace the canvas node at runtime,
+      // and the cost of querySelector on a small container is negligible.
       const canvas = container.querySelector("canvas");
       const lineHeight = canvas ? canvas.clientHeight / terminal.rows : 20;
       pixelAccumulator += event.deltaY;

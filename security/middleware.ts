@@ -11,8 +11,7 @@ export function isValidOrigin(req: Request, port: number): boolean {
   return origin === `http://127.0.0.1:${port}` || origin === `http://localhost:${port}`;
 }
 
-export function isValidToken(req: Request, token: string): boolean {
-  const url = new URL(req.url);
+export function isValidToken(url: URL, token: string): boolean {
   return url.searchParams.get("t") === token;
 }
 

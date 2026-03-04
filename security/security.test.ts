@@ -91,18 +91,18 @@ describe("isValidToken", () => {
   const token = "a".repeat(32);
 
   it("allows request with valid token in query parameter", () => {
-    expect(isValidToken(req(`http://x/test?t=${token}`), token)).toBe(true);
+    expect(isValidToken(new URL(`http://x/test?t=${token}`), token)).toBe(true);
   });
 
   it("rejects request with missing token", () => {
-    expect(isValidToken(req("http://x/test"), token)).toBe(false);
+    expect(isValidToken(new URL("http://x/test"), token)).toBe(false);
   });
 
   it("rejects request with wrong token", () => {
-    expect(isValidToken(req("http://x/test?t=wrong-token"), token)).toBe(false);
+    expect(isValidToken(new URL("http://x/test?t=wrong-token"), token)).toBe(false);
   });
 
   it("rejects request with empty token parameter", () => {
-    expect(isValidToken(req("http://x/test?t="), token)).toBe(false);
+    expect(isValidToken(new URL("http://x/test?t="), token)).toBe(false);
   });
 });

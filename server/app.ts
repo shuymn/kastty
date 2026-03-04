@@ -1,5 +1,5 @@
 import type { ServerWebSocket } from "bun";
-import { parseClientMessage } from "../protocol/messages.ts";
+import { parseClientMessage, type ServerMessage } from "../protocol/messages.ts";
 import { isValidToken, validateRequest } from "../security/middleware.ts";
 import type { ClientConnection, SessionManager } from "../session/session-manager.ts";
 
@@ -16,16 +16,12 @@ export interface ServerOptions {
   assets?: Map<string, StaticAsset>;
 }
 
-function toArrayBuffer(data: Uint8Array): ArrayBuffer {
-  return (data.buffer as ArrayBuffer).slice(data.byteOffset, data.byteOffset + data.byteLength);
-}
-
 export function createServer(options: ServerOptions) {
   const wsClients = new Map<ServerWebSocket, ClientConnection>();
 
   options.session.onExit((code) => {
     for (const ws of wsClients.keys()) {
-      ws.send(JSON.stringify({ t: "exit", code }));
+      ws.send(JSON.stringify({ t: "exit", code } satisfies ServerMessage));
       ws.close();
     }
   });
@@ -44,7 +40,7 @@ export function createServer(options: ServerOptions) {
     }
 
     if (url.pathname === "/ws") {
-      if (!isValidToken(req, options.token)) {
+      if (!isValidToken(url, options.token)) {
         return new Response("Forbidden", { status: 403 });
       }
       const upgraded = server.upgrade(req);
@@ -60,16 +56,16 @@ export function createServer(options: ServerOptions) {
       try {
         const client: ClientConnection = {
           send(data: Uint8Array) {
-            ws.send(toArrayBuffer(data));
+            ws.send(data);
           },
         };
         const replayData = options.session.connect(client);
         wsClients.set(ws, client);
 
-        ws.send(JSON.stringify({ t: "hello", readonly: options.session.isReadonly() }));
+        ws.send(JSON.stringify({ t: "hello", readonly: options.session.isReadonly() } satisfies ServerMessage));
 
         if (replayData.length > 0) {
-          ws.send(toArrayBuffer(replayData));
+          ws.send(replayData);
         }
       } catch {
         ws.close(1008, "Connection rejected");
@@ -89,11 +85,11 @@ export function createServer(options: ServerOptions) {
             case "readonly":
               options.session.setReadonly(msg.enabled);
               for (const peer of wsClients.keys()) {
-                peer.send(JSON.stringify({ t: "readonly", enabled: msg.enabled }));
+                peer.send(JSON.stringify({ t: "readonly", enabled: msg.enabled } satisfies ServerMessage));
               }
               break;
             case "ping":
-              ws.send(JSON.stringify({ t: "pong", ts: msg.ts }));
+              ws.send(JSON.stringify({ t: "pong", ts: msg.ts } satisfies ServerMessage));
               break;
           }
         } catch {

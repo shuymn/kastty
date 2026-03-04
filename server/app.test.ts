@@ -268,6 +268,27 @@ describe("WebSocket", () => {
     }
   });
 
+  it("sends Uint8Array subview (byteOffset != 0) correctly", async () => {
+    const { wsUrl, mockPty } = startServer();
+    const ws = new WebSocket(wsUrl);
+    ws.binaryType = "arraybuffer";
+    try {
+      const helloPromise = waitForMessage(ws);
+      await waitForOpen(ws);
+      await helloPromise;
+
+      const backing = new Uint8Array([0xff, 0x01, 0x02, 0x03, 0xff]);
+      const subview = backing.subarray(1, 4);
+      mockPty.emitData(subview);
+
+      const msg = await waitForMessage(ws);
+      const received = new Uint8Array(msg.data as ArrayBuffer);
+      expect(received).toEqual(new Uint8Array([0x01, 0x02, 0x03]));
+    } finally {
+      ws.close();
+    }
+  });
+
   it("sends exit message when PTY exits", async () => {
     const { wsUrl, mockPty } = startServer();
     const ws = new WebSocket(wsUrl);
