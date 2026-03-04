@@ -14,6 +14,7 @@ export class BunPtyAdapter implements PtyAdapter {
   private dataCallback: ((data: Uint8Array) => void) | null = null;
   private exitCallback: ((exitCode: number) => void) | null = null;
   private encoder = new TextEncoder();
+  private decoder = new TextDecoder();
 
   onData(callback: (data: Uint8Array) => void): void {
     this.dataCallback = callback;
@@ -51,7 +52,7 @@ export class BunPtyAdapter implements PtyAdapter {
 
   write(data: string | Uint8Array): void {
     if (!this.ptyProcess) return;
-    const str = typeof data === "string" ? data : new TextDecoder().decode(data);
+    const str = typeof data === "string" ? data : this.decoder.decode(data);
     this.ptyProcess.write(str);
   }
 
