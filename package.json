@@ -14,12 +14,12 @@
     "check": "biome check --fix . && bun run check:generated && bun run typecheck && bun test"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.4",
-    "@commitlint/cli": "^20.4.2",
-    "@commitlint/config-conventional": "^20.4.2",
-    "@tsconfig/bun": "^1.0.10",
+    "@biomejs/biome": "2.4.6",
+    "@commitlint/cli": "20.4.3",
+    "@commitlint/config-conventional": "20.4.3",
+    "@tsconfig/bun": "1.0.10",
     "@types/bun": "1.3.10",
-    "lefthook": "^2.1.1"
+    "lefthook": "2.1.3"
   },
   "peerDependencies": {
     "typescript": "^5"
