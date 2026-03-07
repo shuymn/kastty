@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.0.6](https://github.com/shuymn/kastty/compare/v0.0.5...v0.0.6) - 2026-03-07
+- refactor: remove unnecessary copies and improve type safety by @shuymn in https://github.com/shuymn/kastty/pull/19
+- chore(renovate): use glob pattern in managerFilePatterns by @shuymn in https://github.com/shuymn/kastty/pull/21
+- chore(deps): update bun to v1.3.10 by @renovate[bot] in https://github.com/shuymn/kastty/pull/24
+- chore(deps): lock file maintenance by @renovate[bot] in https://github.com/shuymn/kastty/pull/27
+- chore(deps): update songmu/tagpr action to v1.17.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/26
+- chore(deps): update oven-sh/setup-bun action to v2.1.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/25
+- chore(deps): update astral-sh/setup-uv action to v7.3.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/23
+- chore(deps): pin dependencies by @renovate[bot] in https://github.com/shuymn/kastty/pull/22
+
 ## [v0.0.5](https://github.com/shuymn/kastty/compare/v0.0.4...v0.0.5) - 2026-02-24
 - docs(readme): add homebrew and restructure documentation by @shuymn in https://github.com/shuymn/kastty/pull/11
 - ci: use .bun-version file for bun version management by @shuymn in https://github.com/shuymn/kastty/pull/12
