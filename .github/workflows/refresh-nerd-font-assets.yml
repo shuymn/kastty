@@ -68,6 +68,27 @@ jobs:
           set -euo pipefail
           ./scripts/update-nerd-font.sh
 
+      - name: Verify Nerd Font asset generation is idempotent
+        if: steps.check-target.outputs.run == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          first_font_hash="$(sha256sum web/fonts/SymbolsNerdFontMono-Regular.woff2 | awk '{print $1}')"
+          first_license_hash="$(sha256sum web/fonts/NerdFontsSymbolsOnly-LICENSE | awk '{print $1}')"
+
+          ./scripts/update-nerd-font.sh
+
+          second_font_hash="$(sha256sum web/fonts/SymbolsNerdFontMono-Regular.woff2 | awk '{print $1}')"
+          second_license_hash="$(sha256sum web/fonts/NerdFontsSymbolsOnly-LICENSE | awk '{print $1}')"
+
+          if [[ "${first_font_hash}" != "${second_font_hash}" || "${first_license_hash}" != "${second_license_hash}" ]]; then
+            echo "Nerd Font asset generation is not idempotent"
+            git diff -- web/fonts/SymbolsNerdFontMono-Regular.woff2 web/fonts/NerdFontsSymbolsOnly-LICENSE || true
+            exit 1
+          fi
+
       - name: Commit and push refreshed assets
         if: steps.check-target.outputs.run == 'true'
         env:

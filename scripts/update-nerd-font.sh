@@ -14,7 +14,7 @@ NERD_FONTS_REPO="ryanoasis/nerd-fonts"
 NERD_FONTS_ARCHIVE="NerdFontsSymbolsOnly.tar.xz"
 
 NERD_FONTS_VERSION="3.4.0"
-FONTTOOLS_VERSION="4.61.1"
+FONTTOOLS_VERSION="4.62.0"
 BROTLI_VERSION="1.2.0"
 
 # Resolve version
@@ -40,7 +40,7 @@ gh release download "v${VERSION}" \
 echo "Converting TTF to WOFF2..."
 uv run --no-project --with "fonttools==${FONTTOOLS_VERSION}" --with "brotli==${BROTLI_VERSION}" python3 -c "
 from fontTools.ttLib import TTFont
-font = TTFont('$WORK/${FONT_NAME}.ttf')
+font = TTFont('$WORK/${FONT_NAME}.ttf', recalcTimestamp=False)
 font.flavor = 'woff2'
 font.save('$WORK/${FONT_NAME}.woff2')
 "
