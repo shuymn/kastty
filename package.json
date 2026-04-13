@@ -22,7 +22,7 @@
     "lefthook": "2.1.5"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "^5 || ^6.0.0"
   },
   "dependencies": {
     "@fontsource-variable/m-plus-1-code": "^5.2.9",
