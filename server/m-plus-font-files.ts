@@ -279,6 +279,10 @@ import mPlus_m_plus_1_code_56_wght_normal_woff2 from "@fontsource-variable/m-plu
   type: "file",
 };
 // @ts-expect-error -- Bun resolves this font to an embedded asset path at compile time
+import mPlus_m_plus_1_code_57_wght_normal_woff2 from "@fontsource-variable/m-plus-1-code/files/m-plus-1-code-57-wght-normal.woff2" with {
+  type: "file",
+};
+// @ts-expect-error -- Bun resolves this font to an embedded asset path at compile time
 import mPlus_m_plus_1_code_58_wght_normal_woff2 from "@fontsource-variable/m-plus-1-code/files/m-plus-1-code-58-wght-normal.woff2" with {
   type: "file",
 };
@@ -545,6 +549,7 @@ export const mPlusFontFiles = new Map<string, string>([
   ["m-plus-1-code-54-wght-normal.woff2", mPlus_m_plus_1_code_54_wght_normal_woff2],
   ["m-plus-1-code-55-wght-normal.woff2", mPlus_m_plus_1_code_55_wght_normal_woff2],
   ["m-plus-1-code-56-wght-normal.woff2", mPlus_m_plus_1_code_56_wght_normal_woff2],
+  ["m-plus-1-code-57-wght-normal.woff2", mPlus_m_plus_1_code_57_wght_normal_woff2],
   ["m-plus-1-code-58-wght-normal.woff2", mPlus_m_plus_1_code_58_wght_normal_woff2],
   ["m-plus-1-code-59-wght-normal.woff2", mPlus_m_plus_1_code_59_wght_normal_woff2],
   ["m-plus-1-code-6-wght-normal.woff2", mPlus_m_plus_1_code_6_wght_normal_woff2],
