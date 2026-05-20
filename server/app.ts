@@ -1,6 +1,6 @@
 import type { ServerWebSocket } from "bun";
 import type { EditorClient, EditorSessionManager } from "../editor/editor-session-manager.ts";
-import { parseClientMessage, type ServerMessage } from "../protocol/messages.ts";
+import { dispatchClientMessage, type PingMessage, type ServerMessage } from "../protocol/messages.ts";
 import { isValidToken, validateRequest } from "../security/middleware.ts";
 import type { ClientConnection, SessionManager } from "../session/session-manager.ts";
 
@@ -98,33 +98,8 @@ export function createServer(options: ServerOptions) {
     return new Response("Not Found", { status: 404 });
   };
 
-  const handleControlMessage = (
-    ws: ServerWebSocket<WsData>,
-    raw: string,
-    handlers: {
-      onResize: (cols: number, rows: number) => void;
-      onEditorOpen?: (content: string) => void;
-      onInvalid?: () => void;
-    },
-  ): void => {
-    try {
-      const msg = parseClientMessage(raw);
-      switch (msg.t) {
-        case "resize":
-          handlers.onResize(msg.cols, msg.rows);
-          break;
-        case "ping":
-          ws.send(JSON.stringify({ t: "pong", ts: msg.ts } satisfies ServerMessage));
-          break;
-        case "editor-open":
-          // Editor launch requests are valid only when the route supplies a handler.
-          handlers.onEditorOpen?.(msg.content);
-          break;
-      }
-    } catch {
-      // invalid protocol message; let the route decide whether to surface it
-      handlers.onInvalid?.();
-    }
+  const sendPong = (ws: ServerWebSocket<WsData>, message: PingMessage): void => {
+    ws.send(JSON.stringify({ t: "pong", ts: message.ts } satisfies ServerMessage));
   };
 
   const registerEditorClient = (ws: ServerWebSocket<WsData>): void => {
@@ -157,18 +132,22 @@ export function createServer(options: ServerOptions) {
       editor.write(client, new Uint8Array(data));
       return;
     }
-    handleControlMessage(ws, data, {
-      onResize: (cols, rows) => editor.resize(client, cols, rows),
-      onEditorOpen: (content) => {
-        void editor.open(client, content);
+    dispatchClientMessage(
+      data,
+      {
+        resize: (m) => editor.resize(client, m.cols, m.rows),
+        ping: (m) => sendPong(ws, m),
+        "editor-open": (m) => {
+          void editor.open(client, m.content);
+        },
       },
       // A malformed editor control payload (e.g. a type mismatch) would
       // otherwise be dropped silently, leaving the overlay stuck connecting.
-      onInvalid: () => {
+      () => {
         client.notify({ t: "error", message: "Invalid editor request" });
         client.close();
       },
-    });
+    );
   };
 
   const websocket = {
@@ -204,7 +183,13 @@ export function createServer(options: ServerOptions) {
       if (typeof data !== "string") {
         options.session.write(new Uint8Array(data));
       } else {
-        handleControlMessage(ws, data, { onResize: (cols, rows) => options.session.resize(cols, rows) });
+        // No onInvalid: malformed control frames on the main channel are
+        // swallowed silently (unchanged behavior).
+        dispatchClientMessage(data, {
+          resize: (m) => options.session.resize(m.cols, m.rows),
+          ping: (m) => sendPong(ws, m),
+          "editor-open": () => {}, // ignored on the main terminal channel
+        });
       }
     },
 
