@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.2.1](https://github.com/shuymn/kastty/compare/v0.2.0...v0.2.1) - 2026-05-20
+- refactor: consolidate protocol dispatch, extract shared modules, add Channel abstraction by @shuymn in https://github.com/shuymn/kastty/pull/77
+
 ## [v0.1.1](https://github.com/shuymn/kastty/compare/v0.1.0...v0.1.1) - 2026-05-20
 - feat: add editor overlay for in-browser terminal buffer editing by @shuymn in https://github.com/shuymn/kastty/pull/75
 
