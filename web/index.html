@@ -9,10 +9,31 @@
     html, body { height: 100%; background: #1e1e1e; color: #ccc; overflow: hidden; }
     #terminal { flex: 1; overflow: hidden; }
     body { display: flex; flex-direction: column; }
+
+    #editor-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: none;
+      padding: 24px;
+      background: rgba(0, 0, 0, 0.6);
+    }
+    #editor-overlay[data-active="true"] { display: block; }
+    #editor-overlay-surface {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #1e1e1e;
+      border: 1px solid #444;
+      border-radius: 4px;
+    }
   </style>
 </head>
 <body>
   <div id="terminal"></div>
+  <div id="editor-overlay">
+    <div id="editor-overlay-surface"></div>
+  </div>
   <script type="module" src="./main.ts"></script>
 </body>
 </html>
