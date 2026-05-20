@@ -72,6 +72,7 @@ function startServer(
 
   const editorPtys: MockPtyAdapter[] = [];
   const removedTempFiles: string[] = [];
+  const editorTempContents: string[] = [];
   let editor: EditorSessionManager | undefined;
   if (options.withEditor) {
     let counter = 0;
@@ -82,7 +83,10 @@ function startServer(
         editorPtys.push(pty);
         return pty;
       },
-      createTempFile: async () => `/tmp/kastty-editor-test-${counter++}.txt`,
+      createTempFile: async (content) => {
+        editorTempContents.push(content);
+        return `/tmp/kastty-editor-test-${counter++}.txt`;
+      },
       removeTempFile: async (path) => {
         removedTempFiles.push(path);
       },
@@ -101,6 +105,7 @@ function startServer(
     editor,
     editorPtys,
     removedTempFiles,
+    editorTempContents,
     server,
     port: server.port,
     wsUrl: `ws://127.0.0.1:${server.port}/ws?t=${TOKEN}`,
@@ -149,6 +154,19 @@ function waitForMessage(ws: WebSocket): Promise<MessageEvent> {
 async function waitForJsonMessage<T>(ws: WebSocket): Promise<T> {
   const msg = await waitForMessage(ws);
   return JSON.parse(msg.data as string) as T;
+}
+
+/**
+ * Open an editor-overlay WebSocket and send the `editor-open` request that
+ * triggers the editor PTY launch. The editor PTY is launched lazily, so the
+ * server replies `hello`/`error` only after this message is received.
+ */
+async function connectEditor(url: string, content = ""): Promise<WebSocket> {
+  const ws = new WebSocket(url);
+  ws.binaryType = "arraybuffer";
+  await waitForOpen(ws);
+  ws.send(JSON.stringify({ t: "editor-open", content }));
+  return ws;
 }
 
 describe("WebSocket", () => {
@@ -248,6 +266,25 @@ describe("WebSocket", () => {
       const msg = await waitForMessage(ws);
       const data = JSON.parse(msg.data as string);
       expect(data).toEqual({ t: "pong", ts: 12345 });
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("ignores editor-open messages on the main terminal websocket", async () => {
+    const { wsUrl, mockPty } = startServer();
+    const ws = new WebSocket(wsUrl);
+    try {
+      const helloPromise = waitForMessage(ws);
+      await waitForOpen(ws);
+      await helloPromise;
+
+      ws.send(JSON.stringify({ t: "editor-open", content: "buffer\n" }));
+      await Bun.sleep(50);
+
+      expect(mockPty.written).toHaveLength(0);
+      expect(mockPty.resizes).toHaveLength(0);
+      expect(ws.readyState).toBe(WebSocket.OPEN);
     } finally {
       ws.close();
     }
@@ -372,14 +409,27 @@ describe("editor overlay WebSocket", () => {
     expect(res.status).toBe(403);
   });
 
-  it("sends hello and launches the editor PTY on connect", async () => {
-    const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
-    const ws = new WebSocket(editorWsUrl);
+  it("launches the editor PTY and writes the buffer content on editor-open", async () => {
+    const { editorWsUrl, editorPtys, editorTempContents } = startServer({ withEditor: {} });
+    const ws = await connectEditor(editorWsUrl, "scrollback\nbuffer\n");
     try {
       const hello = await waitForJsonMessage<{ t: string }>(ws);
       expect(hello).toEqual({ t: "hello" });
       expect(editorPtys).toHaveLength(1);
-      expect(editorPtys[0]?.written).toBeDefined();
+      expect(editorTempContents).toEqual(["scrollback\nbuffer\n"]);
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("does not launch the editor PTY until editor-open is received", async () => {
+    const { editorWsUrl, editor, editorPtys } = startServer({ withEditor: {} });
+    const ws = new WebSocket(editorWsUrl);
+    try {
+      await waitForOpen(ws);
+      await Bun.sleep(50);
+      expect(editorPtys).toHaveLength(0);
+      expect(editor?.hasActiveSession()).toBe(false);
     } finally {
       ws.close();
     }
@@ -387,8 +437,7 @@ describe("editor overlay WebSocket", () => {
 
   it("sends editor PTY output as binary frames", async () => {
     const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
-    const ws = new WebSocket(editorWsUrl);
-    ws.binaryType = "arraybuffer";
+    const ws = await connectEditor(editorWsUrl);
     try {
       await waitForJsonMessage<{ t: string }>(ws);
       const output = new TextEncoder().encode("editor screen");
@@ -403,7 +452,7 @@ describe("editor overlay WebSocket", () => {
 
   it("forwards binary input and resize to the editor PTY", async () => {
     const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
-    const ws = new WebSocket(editorWsUrl);
+    const ws = await connectEditor(editorWsUrl);
     try {
       await waitForJsonMessage<{ t: string }>(ws);
 
@@ -420,7 +469,7 @@ describe("editor overlay WebSocket", () => {
 
   it("reports an error and does not launch a PTY when no editor is configured", async () => {
     const { editorWsUrl, editorPtys } = startServer({ withEditor: { editorEnv: {} } });
-    const ws = new WebSocket(editorWsUrl);
+    const ws = await connectEditor(editorWsUrl);
     try {
       const msg = await waitForJsonMessage<{ t: string; message: string }>(ws);
       expect(msg.t).toBe("error");
@@ -432,12 +481,12 @@ describe("editor overlay WebSocket", () => {
 
   it("rejects a second concurrent editor overlay", async () => {
     const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
-    const first = new WebSocket(editorWsUrl);
+    const first = await connectEditor(editorWsUrl);
     try {
       const helloFirst = await waitForJsonMessage<{ t: string }>(first);
       expect(helloFirst).toEqual({ t: "hello" });
 
-      const second = new WebSocket(editorWsUrl);
+      const second = await connectEditor(editorWsUrl);
       try {
         const msg = await waitForJsonMessage<{ t: string; message: string }>(second);
         expect(msg.t).toBe("error");
@@ -453,7 +502,7 @@ describe("editor overlay WebSocket", () => {
 
   it("sends exit and cleans up the temp file when the editor PTY exits", async () => {
     const { editorWsUrl, editorPtys, removedTempFiles } = startServer({ withEditor: {} });
-    const ws = new WebSocket(editorWsUrl);
+    const ws = await connectEditor(editorWsUrl);
     try {
       await waitForJsonMessage<{ t: string }>(ws);
       editorPtys[0]?.emitExit(0);
@@ -469,7 +518,7 @@ describe("editor overlay WebSocket", () => {
 
   it("cleans up the temp file and frees the slot when the client disconnects", async () => {
     const { editorWsUrl, editor, editorPtys, removedTempFiles } = startServer({ withEditor: {} });
-    const ws = new WebSocket(editorWsUrl);
+    const ws = await connectEditor(editorWsUrl);
     await waitForJsonMessage<{ t: string }>(ws);
     expect(editor?.hasActiveSession()).toBe(true);
 

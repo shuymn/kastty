@@ -1,9 +1,3 @@
-/**
- * Fixed placeholder written to the temporary file in Phase 1. Phase 2 replaces
- * this with the extracted main-terminal buffer text.
- */
-export const EDITOR_OVERLAY_PLACEHOLDER = "hello from kastty overlay\n";
-
 export interface EditorEnv {
   VISUAL?: string;
   EDITOR?: string;

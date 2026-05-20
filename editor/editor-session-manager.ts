@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerMessage } from "../protocol/messages.ts";
 import type { PtyAdapter } from "../pty/adapter.ts";
-import { buildEditorSpawn, EDITOR_OVERLAY_PLACEHOLDER, type EditorEnv, resolveEditorCommand } from "./resolve.ts";
+import { buildEditorSpawn, type EditorEnv, resolveEditorCommand } from "./resolve.ts";
 
 /**
  * Transport-agnostic view of the browser-side editor overlay connection. The
@@ -69,12 +69,14 @@ export class EditorSessionManager {
   }
 
   /**
-   * Attempt to open an editor overlay for `client`. Rejects (via an `error`
-   * control message followed by close) when a session is already active or no
-   * editor is configured.
+   * Attempt to open an editor overlay for `client`, seeding the temporary file
+   * with `content` (the extracted main-terminal buffer text; may be empty).
+   * Rejects (via an `error` control message followed by close) when a session
+   * is already active or no editor is configured.
    */
-  async open(client: EditorClient): Promise<void> {
+  async open(client: EditorClient, content: string): Promise<void> {
     if (this.active) {
+      if (this.active.client === client) return;
       client.notify({ t: "error", message: "An editor overlay is already open" });
       client.close();
       return;
@@ -94,7 +96,7 @@ export class EditorSessionManager {
 
     let tmpFile: string;
     try {
-      tmpFile = await this.createTempFile(EDITOR_OVERLAY_PLACEHOLDER);
+      tmpFile = await this.createTempFile(content);
     } catch (error) {
       if (session.closing || this.active !== session) return;
       this.active = null;

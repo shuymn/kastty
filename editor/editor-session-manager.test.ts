@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 import type { ServerMessage } from "../protocol/messages.ts";
 import type { PtyAdapter } from "../pty/adapter.ts";
 import { type EditorClient, EditorSessionManager } from "./editor-session-manager.ts";
-import { EDITOR_OVERLAY_PLACEHOLDER } from "./resolve.ts";
+
+const BUFFER_CONTENT = "buffer line one\nbuffer line two\n";
 
 class FakePty implements PtyAdapter {
   dataCallback: ((data: Uint8Array) => void) | null = null;
@@ -59,12 +60,14 @@ interface Harness {
   ptys: FakePty[];
   created: string[];
   removed: string[];
+  contents: string[];
 }
 
 function makeManager(env: { VISUAL?: string; EDITOR?: string }): Harness {
   const ptys: FakePty[] = [];
   const created: string[] = [];
   const removed: string[] = [];
+  const contents: string[] = [];
   let counter = 0;
   const manager = new EditorSessionManager({
     env,
@@ -74,7 +77,7 @@ function makeManager(env: { VISUAL?: string; EDITOR?: string }): Harness {
       return pty;
     },
     createTempFile: async (content) => {
-      expect(content).toBe(EDITOR_OVERLAY_PLACEHOLDER);
+      contents.push(content);
       const path = `/tmp/fake-${counter++}.txt`;
       created.push(path);
       return path;
@@ -84,18 +87,19 @@ function makeManager(env: { VISUAL?: string; EDITOR?: string }): Harness {
     },
     logger: () => {},
   });
-  return { manager, ptys, created, removed };
+  return { manager, ptys, created, removed, contents };
 }
 
 describe("EditorSessionManager", () => {
-  it("opens a session, launches the editor, and sends hello", async () => {
-    const { manager, ptys, created } = makeManager({ EDITOR: "vim" });
+  it("opens a session, writes the buffer content, launches the editor, and sends hello", async () => {
+    const { manager, ptys, created, contents } = makeManager({ EDITOR: "vim" });
     const client = new FakeClient();
 
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
 
     expect(manager.hasActiveSession()).toBe(true);
     expect(created).toHaveLength(1);
+    expect(contents).toEqual([BUFFER_CONTENT]);
     expect(ptys).toHaveLength(1);
     expect(ptys[0]?.started?.command).toBe("/bin/sh");
     expect(ptys[0]?.started?.args).toEqual(["-c", 'vim "$@"', "kastty-editor", created[0] as string]);
@@ -103,10 +107,21 @@ describe("EditorSessionManager", () => {
     expect(client.closed).toBe(false);
   });
 
+  it("writes empty content to the temp file for an empty buffer", async () => {
+    const { manager, created, contents } = makeManager({ EDITOR: "vim" });
+    const client = new FakeClient();
+
+    await manager.open(client, "");
+
+    expect(created).toHaveLength(1);
+    expect(contents).toEqual([""]);
+    expect(client.notifications).toEqual([{ t: "hello" }]);
+  });
+
   it("streams PTY output to the client as binary frames", async () => {
     const { manager, ptys } = makeManager({ EDITOR: "vim" });
     const client = new FakeClient();
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
 
     const output = new TextEncoder().encode("editor output");
     ptys[0]?.emitData(output);
@@ -117,21 +132,35 @@ describe("EditorSessionManager", () => {
   it("rejects a second session while one is active", async () => {
     const { manager, ptys } = makeManager({ EDITOR: "vim" });
     const first = new FakeClient();
-    await manager.open(first);
+    await manager.open(first, BUFFER_CONTENT);
 
     const second = new FakeClient();
-    await manager.open(second);
+    await manager.open(second, BUFFER_CONTENT);
 
     expect(ptys).toHaveLength(1);
     expect(second.notifications).toEqual([{ t: "error", message: "An editor overlay is already open" }]);
     expect(second.closed).toBe(true);
   });
 
+  it("ignores duplicate open requests from the active client", async () => {
+    const { manager, ptys, contents } = makeManager({ EDITOR: "vim" });
+    const client = new FakeClient();
+    await manager.open(client, BUFFER_CONTENT);
+
+    await manager.open(client, "replacement content\n");
+
+    expect(manager.hasActiveSession()).toBe(true);
+    expect(ptys).toHaveLength(1);
+    expect(contents).toEqual([BUFFER_CONTENT]);
+    expect(client.notifications).toEqual([{ t: "hello" }]);
+    expect(client.closed).toBe(false);
+  });
+
   it("rejects when no editor is configured", async () => {
     const { manager, ptys, created } = makeManager({});
     const client = new FakeClient();
 
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
 
     expect(manager.hasActiveSession()).toBe(false);
     expect(ptys).toHaveLength(0);
@@ -143,7 +172,7 @@ describe("EditorSessionManager", () => {
   it("forwards write and resize to the active PTY", async () => {
     const { manager, ptys } = makeManager({ EDITOR: "vim" });
     const client = new FakeClient();
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
 
     const input = new TextEncoder().encode(":wq\n");
     manager.write(client, input);
@@ -156,7 +185,7 @@ describe("EditorSessionManager", () => {
   it("ignores write/resize from a non-active client", async () => {
     const { manager, ptys } = makeManager({ EDITOR: "vim" });
     const client = new FakeClient();
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
 
     const stranger = new FakeClient();
     manager.write(stranger, new TextEncoder().encode("x"));
@@ -169,7 +198,7 @@ describe("EditorSessionManager", () => {
   it("on PTY exit notifies, closes, cleans up the temp file, and frees the slot", async () => {
     const { manager, ptys, created, removed } = makeManager({ EDITOR: "vim" });
     const client = new FakeClient();
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
 
     ptys[0]?.emitExit(0);
     await Promise.resolve();
@@ -183,7 +212,7 @@ describe("EditorSessionManager", () => {
   it("on client disconnect destroys the PTY, cleans up, and frees the slot", async () => {
     const { manager, ptys, created, removed } = makeManager({ EDITOR: "vim" });
     const client = new FakeClient();
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
 
     manager.disconnect(client);
     await Promise.resolve();
@@ -196,12 +225,12 @@ describe("EditorSessionManager", () => {
   it("allows a new session after the previous one exits", async () => {
     const { manager, ptys } = makeManager({ EDITOR: "vim" });
     const first = new FakeClient();
-    await manager.open(first);
+    await manager.open(first, BUFFER_CONTENT);
     ptys[0]?.emitExit(0);
     await Promise.resolve();
 
     const second = new FakeClient();
-    await manager.open(second);
+    await manager.open(second, BUFFER_CONTENT);
 
     expect(ptys).toHaveLength(2);
     expect(second.notifications).toEqual([{ t: "hello" }]);
@@ -211,13 +240,48 @@ describe("EditorSessionManager", () => {
   it("does not double clean up when exit follows disconnect", async () => {
     const { manager, ptys, removed } = makeManager({ EDITOR: "vim" });
     const client = new FakeClient();
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
 
     manager.disconnect(client);
     ptys[0]?.emitExit(0);
     await Promise.resolve();
 
     expect(removed).toHaveLength(1);
+  });
+
+  it("ignores duplicate open requests from the active client while creating the temp file", async () => {
+    let resolveTempFile!: (path: string) => void;
+    const ptys: FakePty[] = [];
+    const contents: string[] = [];
+    const manager = new EditorSessionManager({
+      env: { EDITOR: "vim" },
+      createPty: () => {
+        const pty = new FakePty();
+        ptys.push(pty);
+        return pty;
+      },
+      createTempFile: async (content) => {
+        contents.push(content);
+        return new Promise<string>((resolve) => {
+          resolveTempFile = resolve;
+        });
+      },
+      removeTempFile: async () => {},
+      logger: () => {},
+    });
+    const client = new FakeClient();
+
+    const openPromise = manager.open(client, BUFFER_CONTENT);
+    await Promise.resolve();
+    await manager.open(client, "replacement content\n");
+    resolveTempFile("/tmp/duplicate-open.txt");
+    await openPromise;
+
+    expect(manager.hasActiveSession()).toBe(true);
+    expect(ptys).toHaveLength(1);
+    expect(contents).toEqual([BUFFER_CONTENT]);
+    expect(client.notifications).toEqual([{ t: "hello" }]);
+    expect(client.closed).toBe(false);
   });
 
   it("does not launch a PTY when the client disconnects while creating the temp file", async () => {
@@ -242,7 +306,7 @@ describe("EditorSessionManager", () => {
     });
     const client = new FakeClient();
 
-    const openPromise = manager.open(client);
+    const openPromise = manager.open(client, BUFFER_CONTENT);
     await Promise.resolve();
     expect(manager.hasActiveSession()).toBe(true);
 
@@ -276,7 +340,7 @@ describe("EditorSessionManager", () => {
     });
     const client = new FakeClient();
 
-    await manager.open(client);
+    await manager.open(client, BUFFER_CONTENT);
     await Promise.resolve();
 
     expect(client.notifications).toEqual([{ t: "exit", code: 0 }]);
