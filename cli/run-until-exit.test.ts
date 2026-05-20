@@ -83,12 +83,12 @@ describe("runUntilExit", () => {
     expect(server.stopCount).toBe(1);
   });
 
-  test("SIGTERM behaves identically to SIGINT", async () => {
+  test("SIGTERM destroys the session, stops the server, and resolves with 143", async () => {
     const { session, server, signals, promise } = createHarness();
 
     signals.emit("SIGTERM");
 
-    expect(await promise).toBe(130);
+    expect(await promise).toBe(143);
     expect(session.destroyCount).toBe(1);
     expect(server.stopCount).toBe(1);
   });

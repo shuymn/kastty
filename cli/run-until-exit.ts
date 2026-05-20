@@ -15,8 +15,15 @@ export interface SignalSource {
   off(signal: "SIGINT" | "SIGTERM", handler: () => void): void;
 }
 
-/** POSIX convention: a signal-terminated process exits with 128 + signal number (SIGINT = 2). */
-const SIGNAL_EXIT_CODE = 128 + 2;
+/** POSIX convention: a signal-terminated process exits with 128 + signal number. */
+const SIGNAL_NUMBER = {
+  SIGINT: 2,
+  SIGTERM: 15,
+} as const;
+
+function signalExitCode(signal: keyof typeof SIGNAL_NUMBER): number {
+  return 128 + SIGNAL_NUMBER[signal];
+}
 
 /**
  * Block until the session ends, then resolve with the process exit code.
@@ -42,17 +49,19 @@ export function runUntilExit(
       serverStopped = true;
       server.stop();
     };
-    function handleSignal(): void {
+    function handleSignal(signal: keyof typeof SIGNAL_NUMBER): void {
       session.destroy();
       stopServer();
-      settle(SIGNAL_EXIT_CODE);
+      settle(signalExitCode(signal));
     }
+    const onSigint = () => handleSignal("SIGINT");
+    const onSigterm = () => handleSignal("SIGTERM");
 
     const settle = (code: number) => {
       if (settled) return;
       settled = true;
-      signals.off("SIGINT", handleSignal);
-      signals.off("SIGTERM", handleSignal);
+      signals.off("SIGINT", onSigint);
+      signals.off("SIGTERM", onSigterm);
       resolve(code);
     };
 
@@ -61,7 +70,7 @@ export function runUntilExit(
       settle(code);
     });
 
-    signals.on("SIGINT", handleSignal);
-    signals.on("SIGTERM", handleSignal);
+    signals.on("SIGINT", onSigint);
+    signals.on("SIGTERM", onSigterm);
   });
 }
