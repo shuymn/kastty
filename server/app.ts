@@ -8,8 +8,14 @@ import type { ClientConnection, SessionManager } from "../session/session-manage
  * Maximum size of a single inbound WebSocket frame. This is the size guard for
  * `editor-open` payloads (the full normal buffer can be large), so the protocol
  * schema itself leaves `content` unbounded and relies on this transport limit.
+ *
+ * Bun applies one limit per handler, and `createServer()` serves both `/ws` and
+ * `/editor-ws` from a single handler, so this is shared by both routes. 32 MiB
+ * covers realistic editor snapshots — a few MiB at the default scrollback, and
+ * still ample for `--scrollback 200000` — including JSON/UTF-8 serialization
+ * overhead, while keeping the main terminal channel bounded.
  */
-export const MAX_WS_PAYLOAD_BYTES = 16 * 1024 * 1024;
+export const MAX_WS_PAYLOAD_BYTES = 32 * 1024 * 1024;
 
 export interface StaticAsset {
   body: string | ArrayBuffer;
@@ -26,8 +32,8 @@ export interface ServerOptions {
   /**
    * Maximum inbound WebSocket frame size, applied to the returned `websocket`
    * handler so every `Bun.serve()` caller enforces the same limit. Defaults to
-   * {@link MAX_WS_PAYLOAD_BYTES}; callers may raise it to match a larger
-   * configured scrollback.
+   * {@link MAX_WS_PAYLOAD_BYTES}. Shared by `/ws` and `/editor-ws` (Bun applies
+   * one limit per handler).
    */
   maxPayloadLength?: number;
 }

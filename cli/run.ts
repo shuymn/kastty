@@ -69,16 +69,7 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
     assets.set(`/fonts/${name}`, { body: buf, contentType: "font/woff2", cacheControl: immutableCache });
   }
 
-  const { fetch: appFetch, websocket } = createServer({
-    session,
-    token,
-    port,
-    assets,
-    editor,
-    // Bound editor-open frames by the configured scrollback budget so large
-    // histories are not silently dropped at the transport layer.
-    maxPayloadLength: options.replayBufferBytes,
-  });
+  const { fetch: appFetch, websocket } = createServer({ session, token, port, assets, editor });
 
   const server = Bun.serve({
     routes: {
