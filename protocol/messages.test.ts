@@ -1,5 +1,15 @@
 import { describe, expect, it } from "bun:test";
-import { ProtocolError, parseClientMessage, parseServerMessage } from "./messages.ts";
+import {
+  type ClientMessage,
+  type ClientMessageHandlers,
+  dispatchClientMessage,
+  dispatchServerMessage,
+  ProtocolError,
+  parseClientMessage,
+  parseServerMessage,
+  type ServerMessage,
+  type ServerMessageHandlers,
+} from "./messages.ts";
 
 describe("parseClientMessage", () => {
   describe("resize", () => {
@@ -255,5 +265,171 @@ describe("ProtocolError", () => {
   it("has the name ProtocolError", () => {
     const err = new ProtocolError("test");
     expect(err.name).toBe("ProtocolError");
+  });
+});
+
+// Build a handler map whose every entry records the message it received, so a
+// test can assert exactly one handler ran (and with what payload). Exhaustive
+// by construction; omitting a key would be a compile error (not runtime-testable).
+function recordingClientHandlers() {
+  const calls: ClientMessage[] = [];
+  const handlers: ClientMessageHandlers = {
+    resize: (m) => calls.push(m),
+    ping: (m) => calls.push(m),
+    "editor-open": (m) => calls.push(m),
+  };
+  return { handlers, calls };
+}
+
+function recordingServerHandlers() {
+  const calls: ServerMessage[] = [];
+  const handlers: ServerMessageHandlers = {
+    hello: (m) => calls.push(m),
+    exit: (m) => calls.push(m),
+    error: (m) => calls.push(m),
+    pong: (m) => calls.push(m),
+  };
+  return { handlers, calls };
+}
+
+describe("dispatchClientMessage", () => {
+  it("routes resize to its handler with the parsed payload", () => {
+    const { handlers, calls } = recordingClientHandlers();
+    dispatchClientMessage('{"t":"resize","cols":120,"rows":40}', handlers);
+    expect(calls).toEqual([{ t: "resize", cols: 120, rows: 40 }]);
+  });
+
+  it("routes ping to its handler with the parsed payload", () => {
+    const { handlers, calls } = recordingClientHandlers();
+    dispatchClientMessage('{"t":"ping","ts":12345}', handlers);
+    expect(calls).toEqual([{ t: "ping", ts: 12345 }]);
+  });
+
+  it("routes editor-open to its handler with the parsed payload", () => {
+    const { handlers, calls } = recordingClientHandlers();
+    dispatchClientMessage('{"t":"editor-open","content":"buffer\\n"}', handlers);
+    expect(calls).toEqual([{ t: "editor-open", content: "buffer\n" }]);
+  });
+
+  it("passes a ProtocolError to onInvalid on malformed JSON", () => {
+    const { handlers, calls } = recordingClientHandlers();
+    const errors: ProtocolError[] = [];
+    dispatchClientMessage("not json", handlers, (error) => errors.push(error));
+    expect(calls).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(ProtocolError);
+  });
+
+  it("passes a ProtocolError to onInvalid on schema mismatch", () => {
+    const { handlers, calls } = recordingClientHandlers();
+    const errors: ProtocolError[] = [];
+    dispatchClientMessage('{"t":"resize","cols":1}', handlers, (error) => errors.push(error));
+    expect(calls).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(ProtocolError);
+  });
+
+  it("passes a ProtocolError to onInvalid on unknown message type", () => {
+    const { handlers, calls } = recordingClientHandlers();
+    const errors: ProtocolError[] = [];
+    dispatchClientMessage('{"t":"unknown"}', handlers, (error) => errors.push(error));
+    expect(calls).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(ProtocolError);
+  });
+
+  it("swallows invalid frames silently when onInvalid is omitted", () => {
+    for (const raw of ["not json", '{"t":"resize","cols":1}', '{"t":"unknown"}']) {
+      const { handlers, calls } = recordingClientHandlers();
+      expect(() => dispatchClientMessage(raw, handlers)).not.toThrow();
+      expect(calls).toEqual([]);
+    }
+  });
+
+  it("propagates handler errors without calling onInvalid", () => {
+    const thrown = new ProtocolError("handler failed");
+    const { handlers } = recordingClientHandlers();
+    const errors: ProtocolError[] = [];
+    handlers.resize = () => {
+      throw thrown;
+    };
+
+    expect(() =>
+      dispatchClientMessage('{"t":"resize","cols":120,"rows":40}', handlers, (error) => errors.push(error)),
+    ).toThrow(thrown);
+    expect(errors).toEqual([]);
+  });
+});
+
+describe("dispatchServerMessage", () => {
+  it("routes hello to its handler", () => {
+    const { handlers, calls } = recordingServerHandlers();
+    dispatchServerMessage('{"t":"hello"}', handlers);
+    expect(calls).toEqual([{ t: "hello" }]);
+  });
+
+  it("routes exit to its handler with the parsed payload", () => {
+    const { handlers, calls } = recordingServerHandlers();
+    dispatchServerMessage('{"t":"exit","code":0}', handlers);
+    expect(calls).toEqual([{ t: "exit", code: 0 }]);
+  });
+
+  it("routes error to its handler with the parsed payload", () => {
+    const { handlers, calls } = recordingServerHandlers();
+    dispatchServerMessage('{"t":"error","message":"boom"}', handlers);
+    expect(calls).toEqual([{ t: "error", message: "boom" }]);
+  });
+
+  it("routes pong to its handler with the parsed payload", () => {
+    const { handlers, calls } = recordingServerHandlers();
+    dispatchServerMessage('{"t":"pong","ts":999}', handlers);
+    expect(calls).toEqual([{ t: "pong", ts: 999 }]);
+  });
+
+  it("passes a ProtocolError to onInvalid on malformed JSON", () => {
+    const { handlers, calls } = recordingServerHandlers();
+    const errors: ProtocolError[] = [];
+    dispatchServerMessage("not json", handlers, (error) => errors.push(error));
+    expect(calls).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(ProtocolError);
+  });
+
+  it("passes a ProtocolError to onInvalid on schema mismatch", () => {
+    const { handlers, calls } = recordingServerHandlers();
+    const errors: ProtocolError[] = [];
+    dispatchServerMessage('{"t":"exit"}', handlers, (error) => errors.push(error));
+    expect(calls).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(ProtocolError);
+  });
+
+  it("passes a ProtocolError to onInvalid on unknown message type", () => {
+    const { handlers, calls } = recordingServerHandlers();
+    const errors: ProtocolError[] = [];
+    dispatchServerMessage('{"t":"unknown"}', handlers, (error) => errors.push(error));
+    expect(calls).toEqual([]);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toBeInstanceOf(ProtocolError);
+  });
+
+  it("swallows invalid frames silently when onInvalid is omitted", () => {
+    for (const raw of ["not json", '{"t":"exit"}', '{"t":"unknown"}']) {
+      const { handlers, calls } = recordingServerHandlers();
+      expect(() => dispatchServerMessage(raw, handlers)).not.toThrow();
+      expect(calls).toEqual([]);
+    }
+  });
+
+  it("propagates handler errors without calling onInvalid", () => {
+    const thrown = new Error("handler failed");
+    const { handlers } = recordingServerHandlers();
+    const errors: ProtocolError[] = [];
+    handlers.hello = () => {
+      throw thrown;
+    };
+
+    expect(() => dispatchServerMessage('{"t":"hello"}', handlers, (error) => errors.push(error))).toThrow(thrown);
+    expect(errors).toEqual([]);
   });
 });
