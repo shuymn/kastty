@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.1.1](https://github.com/shuymn/kastty/compare/v0.1.0...v0.1.1) - 2026-05-20
+- feat: add editor overlay for in-browser terminal buffer editing by @shuymn in https://github.com/shuymn/kastty/pull/75
+
 ## [v0.0.7](https://github.com/shuymn/kastty/compare/v0.0.6...v0.0.7) - 2026-05-20
 - Revert "Revert "refactor: remove readonly feature"" by @shuymn in https://github.com/shuymn/kastty/pull/73
 
