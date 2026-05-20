@@ -62,7 +62,7 @@ export function createServer(options: ServerOptions) {
         const replayData = options.session.connect(client);
         wsClients.set(ws, client);
 
-        ws.send(JSON.stringify({ t: "hello", readonly: options.session.isReadonly() } satisfies ServerMessage));
+        ws.send(JSON.stringify({ t: "hello" } satisfies ServerMessage));
 
         if (replayData.length > 0) {
           ws.send(replayData);
@@ -81,12 +81,6 @@ export function createServer(options: ServerOptions) {
           switch (msg.t) {
             case "resize":
               options.session.resize(msg.cols, msg.rows);
-              break;
-            case "readonly":
-              options.session.setReadonly(msg.enabled);
-              for (const peer of wsClients.keys()) {
-                peer.send(JSON.stringify({ t: "readonly", enabled: msg.enabled } satisfies ServerMessage));
-              }
               break;
             case "ping":
               ws.send(JSON.stringify({ t: "pong", ts: msg.ts } satisfies ServerMessage));

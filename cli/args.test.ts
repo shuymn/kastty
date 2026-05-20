@@ -16,9 +16,8 @@ describe("parseCliArgs", () => {
     expect(opts.args).toEqual(["file.txt"]);
   });
 
-  test("--readonly sets initial readonly mode", () => {
-    const opts = parseCliArgs(["--readonly"]);
-    expect(opts.readonly).toBe(true);
+  test("--readonly is rejected", () => {
+    expect(() => parseCliArgs(["--readonly"])).toThrow(CliParseError);
   });
 
   test("--port 0 enables automatic port assignment", () => {
@@ -35,9 +34,8 @@ describe("parseCliArgs", () => {
     expect(opts.open).toBe(false);
   });
 
-  test("defaults to open=true, readonly=false, port=0", () => {
+  test("defaults to open=true and port=0", () => {
     const opts = parseCliArgs([]);
-    expect(opts.readonly).toBe(false);
     expect(opts.port).toBe(0);
     expect(opts.open).toBe(true);
   });
