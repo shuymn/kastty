@@ -1,24 +1,24 @@
 import { FitAddon, Terminal } from "ghostty-web";
-import { createGhosttyTerminal, type GhosttyAdapterResult, type GhosttyTerminalAddon } from "./ghostty-adapter.ts";
-import type { ConnectionState, TerminalHandle } from "./terminal.ts";
+import { createGhosttyTerminal, type GhosttyAdapterResult } from "./ghostty-adapter.ts";
+import type { TerminalHandle } from "./terminal.ts";
+import {
+  type BindableClient,
+  type BindableFitAddon,
+  bindClientToTerminal,
+  type TerminalBinding,
+} from "./terminal-binding.ts";
 import { TerminalClient } from "./terminal-client.ts";
 
-export interface EditorOverlayClient {
+export interface EditorOverlayClient extends BindableClient {
   connect(): void;
   disconnect(): void;
   /** Send the editor-open request (with buffer content) once the socket opens. */
   requestOpen(content: string): void;
-  sendInput(data: Uint8Array | ArrayBuffer): void;
-  sendResize(cols: number, rows: number): void;
-  onStateChange(callback: (state: ConnectionState) => void): void;
   onExit(callback: (code: number) => void): void;
   onError(callback: (message: string) => void): void;
 }
 
-export interface EditorOverlayFitAddon extends GhosttyTerminalAddon {
-  fit(): void;
-  observeResize(): void;
-}
+export type EditorOverlayFitAddon = BindableFitAddon;
 
 export interface EditorOverlayOptions {
   /** The full-screen overlay container (toggled via `data-active`). */
@@ -90,41 +90,19 @@ export class EditorOverlay {
 
     try {
       const createAdapter = this.options.createAdapter ?? defaultCreateAdapter;
-      this.adapter = await createAdapter(this.options.surface, this.options.terminalOptions);
+      const adapter = await createAdapter(this.options.surface, this.options.terminalOptions);
+      this.adapter = adapter;
 
       const createClient = this.options.createClient ?? defaultCreateClient;
-      const client = createClient(this.adapter.handle, this.options.wsUrl);
+      const client = createClient(adapter.handle, this.options.wsUrl);
       this.client = client;
 
-      const encoder = new TextEncoder();
-      this.disposers.push(
-        this.adapter.onData((data) => {
-          client.sendInput(encoder.encode(data));
-        }),
-      );
-
       const fitAddon = (this.options.createFitAddon ?? defaultCreateFitAddon)();
-      this.adapter.loadAddon(fitAddon);
-      this.disposers.push(fitAddon);
-
-      let lastCols = 0;
-      let lastRows = 0;
-      this.disposers.push(
-        this.adapter.onResize((cols, rows) => {
-          lastCols = cols;
-          lastRows = rows;
-          client.sendResize(cols, rows);
-        }),
-      );
+      const binding: TerminalBinding = bindClientToTerminal({ adapter, client, fitAddon });
+      this.disposers.push(binding);
 
       client.onStateChange((state) => {
-        if (state === "connected") {
-          fitAddon.fit();
-          if (lastCols > 0 && lastRows > 0) {
-            client.sendResize(lastCols, lastRows);
-          }
-          this.adapter?.focus();
-        } else if (state === "disconnected" && this.active) {
+        if (state === "disconnected" && this.active) {
           this.teardown();
         }
       });
@@ -137,9 +115,6 @@ export class EditorOverlay {
         this.reportError(message);
         this.teardown();
       });
-
-      fitAddon.fit();
-      fitAddon.observeResize();
 
       client.requestOpen(content);
       client.connect();

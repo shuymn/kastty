@@ -4,6 +4,7 @@ import { EditorOverlay } from "./editor-overlay.ts";
 import { createGhosttyTerminal } from "./ghostty-adapter.ts";
 import { formatTabTitle } from "./tab-title.ts";
 import type { ConnectionState } from "./terminal.ts";
+import { bindClientToTerminal } from "./terminal-binding.ts";
 import { TerminalClient } from "./terminal-client.ts";
 
 const DEFAULT_FONT_SIZE = 14;
@@ -79,15 +80,13 @@ async function main() {
     terminalOptions.fontFamily = fontFamily;
   }
 
-  const { handle, onData, onResize, loadAddon, focus, getBufferText } = await createGhosttyTerminal(
+  const adapter = await createGhosttyTerminal(
     container,
     { init, createTerminal: (opts) => new Terminal(opts) },
     terminalOptions,
   );
 
-  const client = new TerminalClient({ terminal: handle, wsUrl });
-  let lastCols = 0;
-  let lastRows = 0;
+  const client = new TerminalClient({ terminal: adapter.handle, wsUrl });
   let connectionState: ConnectionState = "disconnected";
   let terminalTitle: string | null = null;
 
@@ -95,26 +94,11 @@ async function main() {
     document.title = formatTabTitle(connectionState, terminalTitle);
   };
 
-  onResize((cols, rows) => {
-    lastCols = cols;
-    lastRows = rows;
-    client.sendResize(cols, rows);
-  });
-
-  const fitAddon = new FitAddon();
-  loadAddon(fitAddon);
-
-  fitAddon.fit();
-  fitAddon.observeResize();
-
   updateDocumentTitle();
 
   client.onStateChange((state) => {
     connectionState = state;
     updateDocumentTitle();
-    if (state === "connected" && lastCols > 0 && lastRows > 0) {
-      client.sendResize(lastCols, lastRows);
-    }
   });
 
   client.onTitleChange((title) => {
@@ -134,7 +118,7 @@ async function main() {
       surface: editorOverlaySurface,
       wsUrl: editorWsUrl,
       terminalOptions,
-      onClosed: () => focus(),
+      onClosed: () => adapter.focus(),
       onError: showToast,
     });
   }
@@ -155,21 +139,26 @@ async function main() {
         }
         // Snapshot the main terminal buffer now; the overlay seeds the editor
         // PTY's temporary file with this text.
-        void editorOverlay.open(getBufferText());
+        void editorOverlay.open(adapter.getBufferText());
       }
     },
     { capture: true },
   );
 
-  const encoder = new TextEncoder();
-  onData((data) => {
-    // Keep input out of the main PTY while the editor overlay is focused.
-    if (editorOverlay?.isActive()) return;
-    client.sendInput(encoder.encode(data));
+  // Bind after the overlay exists: this predicate reads it to mute input and
+  // avoid stealing focus while the overlay is focused.
+  const canUseMainTerminal = () => !editorOverlay?.isActive();
+  const fitAddon = new FitAddon();
+  bindClientToTerminal({
+    adapter,
+    client,
+    fitAddon,
+    shouldSendInput: canUseMainTerminal,
+    shouldFocus: canUseMainTerminal,
   });
 
   client.connect();
-  focus();
+  adapter.focus();
 }
 
 main().catch(console.error);
