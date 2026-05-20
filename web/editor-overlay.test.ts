@@ -9,15 +9,23 @@ class FakeClient implements EditorOverlayClient {
   errorCallbacks: Array<(message: string) => void> = [];
   sentResizes: Array<{ cols: number; rows: number }> = [];
   sentInputs: Uint8Array[] = [];
+  openRequests: string[] = [];
+  calls: string[] = [];
   connected = false;
   disconnected = false;
 
   connect(): void {
+    this.calls.push("connect");
     this.connected = true;
   }
 
   disconnect(): void {
     this.disconnected = true;
+  }
+
+  requestOpen(content: string): void {
+    this.calls.push(`requestOpen:${content}`);
+    this.openRequests.push(content);
   }
 
   sendInput(data: Uint8Array | ArrayBuffer): void {
@@ -73,6 +81,7 @@ function makeAdapter() {
     setFontSize() {},
     setFontFamily() {},
     scrollToBottom() {},
+    getBufferText: () => "",
   };
   return {
     adapter,
@@ -126,7 +135,7 @@ describe("EditorOverlay", () => {
   it("tears down when the websocket disconnects before hello", async () => {
     const { overlay, container, surface, client, onClosed } = setup();
 
-    await overlay.open();
+    await overlay.open("buffer text\n");
     expect(overlay.isActive()).toBe(true);
 
     client.emitState("disconnected");
@@ -140,7 +149,7 @@ describe("EditorOverlay", () => {
   it("cleans up when terminal creation fails", async () => {
     const { overlay, container, surface, onClosed, errors } = setup({ createAdapterRejects: true });
 
-    await overlay.open();
+    await overlay.open("buffer text\n");
 
     expect(overlay.isActive()).toBe(false);
     expect(container.dataset.active).toBe("false");
@@ -152,7 +161,7 @@ describe("EditorOverlay", () => {
   it("cleans up when websocket connection setup throws", async () => {
     const { overlay, container, surface, onClosed, errors } = setup({ connectThrows: true });
 
-    await overlay.open();
+    await overlay.open("buffer text\n");
 
     expect(overlay.isActive()).toBe(false);
     expect(container.dataset.active).toBe("false");
@@ -161,10 +170,20 @@ describe("EditorOverlay", () => {
     expect(errors[0]).toContain("Failed to open editor overlay");
   });
 
+  it("requests the editor open with the buffer content before connecting", async () => {
+    const { overlay, client } = setup();
+
+    await overlay.open("scrollback content\n");
+
+    expect(client.openRequests).toEqual(["scrollback content\n"]);
+    expect(client.connected).toBe(true);
+    expect(client.calls).toEqual(["requestOpen:scrollback content\n", "connect"]);
+  });
+
   it("resends the latest terminal size after the websocket connects", async () => {
     const { overlay, adapterHarness, client } = setup();
 
-    await overlay.open();
+    await overlay.open("buffer text\n");
     adapterHarness.fireResize(100, 30);
     client.sentResizes.length = 0;
 

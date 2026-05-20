@@ -6,6 +6,8 @@ import { TerminalClient } from "./terminal-client.ts";
 export interface EditorOverlayClient {
   connect(): void;
   disconnect(): void;
+  /** Send the editor-open request (with buffer content) once the socket opens. */
+  requestOpen(content: string): void;
   sendInput(data: Uint8Array | ArrayBuffer): void;
   sendResize(cols: number, rows: number): void;
   onStateChange(callback: (state: ConnectionState) => void): void;
@@ -77,7 +79,11 @@ export class EditorOverlay {
     return this.active;
   }
 
-  async open(): Promise<void> {
+  /**
+   * Open the overlay, requesting an editor PTY seeded with `content` (the
+   * extracted main-terminal buffer text). Ignored if already active.
+   */
+  async open(content: string): Promise<void> {
     if (this.active) return;
     this.active = true;
     this.options.container.dataset.active = "true";
@@ -135,6 +141,7 @@ export class EditorOverlay {
       fitAddon.fit();
       fitAddon.observeResize();
 
+      client.requestOpen(content);
       client.connect();
     } catch (error) {
       this.reportError(`Failed to open editor overlay: ${String(error)}`);
