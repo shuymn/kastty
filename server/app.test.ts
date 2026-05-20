@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { ReplayBuffer } from "../buffer/replay-buffer.ts";
+import { EditorSessionManager } from "../editor/editor-session-manager.ts";
 import type { PtyAdapter } from "../pty/adapter.ts";
 import { SessionManager } from "../session/session-manager.ts";
 import { createServer } from "./app.ts";
@@ -9,6 +10,7 @@ class MockPtyAdapter implements PtyAdapter {
   private exitCallback: ((exitCode: number) => void) | null = null;
   written: (string | Uint8Array)[] = [];
   resizes: { cols: number; rows: number }[] = [];
+  destroyed = false;
 
   onData(callback: (data: Uint8Array) => void): void {
     this.dataCallback = callback;
@@ -28,7 +30,9 @@ class MockPtyAdapter implements PtyAdapter {
     this.written.push(data);
   }
 
-  destroy(): void {}
+  destroy(): void {
+    this.destroyed = true;
+  }
 
   emitData(data: Uint8Array): void {
     this.dataCallback?.(data);
@@ -54,7 +58,9 @@ function findPort(): number {
   return p;
 }
 
-function startServer(options: { replayData?: Uint8Array } = {}) {
+function startServer(
+  options: { replayData?: Uint8Array; withEditor?: { editorEnv?: { VISUAL?: string; EDITOR?: string } } } = {},
+) {
   const mockPty = new MockPtyAdapter();
   const replayBuffer = new ReplayBuffer(1024);
   const session = new SessionManager(mockPty, replayBuffer);
@@ -64,17 +70,41 @@ function startServer(options: { replayData?: Uint8Array } = {}) {
     mockPty.emitData(options.replayData);
   }
 
+  const editorPtys: MockPtyAdapter[] = [];
+  const removedTempFiles: string[] = [];
+  let editor: EditorSessionManager | undefined;
+  if (options.withEditor) {
+    let counter = 0;
+    editor = new EditorSessionManager({
+      env: options.withEditor.editorEnv ?? { EDITOR: "vim" },
+      createPty: () => {
+        const pty = new MockPtyAdapter();
+        editorPtys.push(pty);
+        return pty;
+      },
+      createTempFile: async () => `/tmp/kastty-editor-test-${counter++}.txt`,
+      removeTempFile: async (path) => {
+        removedTempFiles.push(path);
+      },
+      logger: () => {},
+    });
+  }
+
   const port = findPort();
-  const { fetch, websocket } = createServer({ session, token: TOKEN, port });
+  const { fetch, websocket } = createServer({ session, token: TOKEN, port, editor });
   const server = Bun.serve({ fetch, websocket, port, hostname: "127.0.0.1" });
   servers.push(server);
 
   return {
     mockPty,
     session,
+    editor,
+    editorPtys,
+    removedTempFiles,
     server,
     port: server.port,
     wsUrl: `ws://127.0.0.1:${server.port}/ws?t=${TOKEN}`,
+    editorWsUrl: `ws://127.0.0.1:${server.port}/editor-ws?t=${TOKEN}`,
     httpUrl: (p = "/") => `http://127.0.0.1:${server.port}${p}?t=${TOKEN}`,
   };
 }
@@ -326,5 +356,128 @@ describe("WebSocket", () => {
     } finally {
       ws.close();
     }
+  });
+});
+
+describe("editor overlay WebSocket", () => {
+  it("returns 404 for /editor-ws when no editor manager is configured", async () => {
+    const { httpUrl } = startServer();
+    const res = await fetch(httpUrl("/editor-ws"));
+    expect(res.status).toBe(404);
+  });
+
+  it("rejects /editor-ws upgrade without a valid token", async () => {
+    const { server } = startServer({ withEditor: {} });
+    const res = await fetch(`http://127.0.0.1:${server.port}/editor-ws?t=wrong`);
+    expect(res.status).toBe(403);
+  });
+
+  it("sends hello and launches the editor PTY on connect", async () => {
+    const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
+    const ws = new WebSocket(editorWsUrl);
+    try {
+      const hello = await waitForJsonMessage<{ t: string }>(ws);
+      expect(hello).toEqual({ t: "hello" });
+      expect(editorPtys).toHaveLength(1);
+      expect(editorPtys[0]?.written).toBeDefined();
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("sends editor PTY output as binary frames", async () => {
+    const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
+    const ws = new WebSocket(editorWsUrl);
+    ws.binaryType = "arraybuffer";
+    try {
+      await waitForJsonMessage<{ t: string }>(ws);
+      const output = new TextEncoder().encode("editor screen");
+      editorPtys[0]?.emitData(output);
+
+      const msg = await waitForMessage(ws);
+      expect(new Uint8Array(msg.data as ArrayBuffer)).toEqual(output);
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("forwards binary input and resize to the editor PTY", async () => {
+    const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
+    const ws = new WebSocket(editorWsUrl);
+    try {
+      await waitForJsonMessage<{ t: string }>(ws);
+
+      ws.send(new TextEncoder().encode(":wq\n"));
+      ws.send(JSON.stringify({ t: "resize", cols: 100, rows: 30 }));
+      await Bun.sleep(100);
+
+      expect(editorPtys[0]?.written.length).toBeGreaterThan(0);
+      expect(editorPtys[0]?.resizes).toContainEqual({ cols: 100, rows: 30 });
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("reports an error and does not launch a PTY when no editor is configured", async () => {
+    const { editorWsUrl, editorPtys } = startServer({ withEditor: { editorEnv: {} } });
+    const ws = new WebSocket(editorWsUrl);
+    try {
+      const msg = await waitForJsonMessage<{ t: string; message: string }>(ws);
+      expect(msg.t).toBe("error");
+      expect(editorPtys).toHaveLength(0);
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("rejects a second concurrent editor overlay", async () => {
+    const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
+    const first = new WebSocket(editorWsUrl);
+    try {
+      const helloFirst = await waitForJsonMessage<{ t: string }>(first);
+      expect(helloFirst).toEqual({ t: "hello" });
+
+      const second = new WebSocket(editorWsUrl);
+      try {
+        const msg = await waitForJsonMessage<{ t: string; message: string }>(second);
+        expect(msg.t).toBe("error");
+        expect(msg.message).toContain("already open");
+        expect(editorPtys).toHaveLength(1);
+      } finally {
+        second.close();
+      }
+    } finally {
+      first.close();
+    }
+  });
+
+  it("sends exit and cleans up the temp file when the editor PTY exits", async () => {
+    const { editorWsUrl, editorPtys, removedTempFiles } = startServer({ withEditor: {} });
+    const ws = new WebSocket(editorWsUrl);
+    try {
+      await waitForJsonMessage<{ t: string }>(ws);
+      editorPtys[0]?.emitExit(0);
+
+      const msg = await waitForJsonMessage<{ t: string; code: number }>(ws);
+      expect(msg).toEqual({ t: "exit", code: 0 });
+      await Bun.sleep(50);
+      expect(removedTempFiles).toHaveLength(1);
+    } finally {
+      ws.close();
+    }
+  });
+
+  it("cleans up the temp file and frees the slot when the client disconnects", async () => {
+    const { editorWsUrl, editor, editorPtys, removedTempFiles } = startServer({ withEditor: {} });
+    const ws = new WebSocket(editorWsUrl);
+    await waitForJsonMessage<{ t: string }>(ws);
+    expect(editor?.hasActiveSession()).toBe(true);
+
+    ws.close();
+    await Bun.sleep(100);
+
+    expect(editorPtys[0]?.destroyed).toBe(true);
+    expect(removedTempFiles).toHaveLength(1);
+    expect(editor?.hasActiveSession()).toBe(false);
   });
 });

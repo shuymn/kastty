@@ -1,6 +1,7 @@
 // @ts-expect-error -- Bun resolves this WASM file to an embedded asset path at compile time
 import ghosttyWasmEmbedded from "ghostty-web/ghostty-vt.wasm" with { type: "file" };
 import { ReplayBuffer } from "../buffer/replay-buffer.ts";
+import { EditorSessionManager } from "../editor/editor-session-manager.ts";
 import { BunPtyAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
 import { createServer, type StaticAsset } from "../server/app.ts";
@@ -17,6 +18,7 @@ export interface ReadyInfo {
 
 export interface RunDeps {
   createPty?: () => PtyAdapter;
+  createEditorPty?: () => PtyAdapter;
   openBrowser?: (url: string) => Promise<void>;
   onReady?: (info: ReadyInfo) => void;
 }
@@ -46,6 +48,10 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
   const pty = deps?.createPty?.() ?? new BunPtyAdapter();
   const replayBuffer = new ReplayBuffer(options.replayBufferBytes);
   const session = new SessionManager(pty, replayBuffer);
+  const editor = new EditorSessionManager({
+    createPty: deps?.createEditorPty ?? (() => new BunPtyAdapter()),
+    env: { VISUAL: process.env.VISUAL, EDITOR: process.env.EDITOR },
+  });
   const token = generateToken();
 
   const port = resolvePort(options.port);
@@ -63,7 +69,7 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
     assets.set(`/fonts/${name}`, { body: buf, contentType: "font/woff2", cacheControl: immutableCache });
   }
 
-  const { fetch: appFetch, websocket } = createServer({ session, token, port, assets });
+  const { fetch: appFetch, websocket } = createServer({ session, token, port, assets, editor });
 
   const server = Bun.serve({
     routes: {
