@@ -9,6 +9,28 @@ import { TerminalClient } from "./terminal-client.ts";
 const DEFAULT_FONT_SIZE = 14;
 const DEFAULT_FONT_FAMILY = '"M PLUS 1 Code Variable", "Symbols Nerd Font Mono", monospace';
 
+const TOAST_DURATION_MS = 4000;
+
+/**
+ * Show a transient, non-blocking notice. Used for editor-overlay errors
+ * (missing editor, launch failure, server-side conflict) and the
+ * already-open notice, so feedback never blocks the terminal like alert().
+ */
+function createToast(element: HTMLElement | null): (message: string) => void {
+  if (!element) return (message) => console.error(message);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return (message: string) => {
+    element.dataset.visible = "true";
+    queueMicrotask(() => {
+      element.textContent = message;
+    });
+    if (timer !== undefined) clearTimeout(timer);
+    timer = setTimeout(() => {
+      element.dataset.visible = "false";
+    }, TOAST_DURATION_MS);
+  };
+}
+
 function parsePositiveInt(value: string | null): number | null {
   if (!value) return null;
   const parsed = Number.parseInt(value, 10);
@@ -100,6 +122,8 @@ async function main() {
     updateDocumentTitle();
   });
 
+  const showToast = createToast(document.getElementById("toast"));
+
   const editorOverlayContainer = document.getElementById("editor-overlay");
   const editorOverlaySurface = document.getElementById("editor-overlay-surface");
   const editorWsUrl = wsUrlFor("/editor-ws");
@@ -111,6 +135,7 @@ async function main() {
       wsUrl: editorWsUrl,
       terminalOptions,
       onClosed: () => focus(),
+      onError: showToast,
     });
   }
 
@@ -121,9 +146,13 @@ async function main() {
     "keydown",
     (event) => {
       if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && event.code === "KeyE") {
+        if (!editorOverlay) return;
         event.preventDefault();
         event.stopPropagation();
-        if (!editorOverlay || editorOverlay.isActive()) return;
+        if (editorOverlay.isActive()) {
+          showToast("An editor overlay is already open");
+          return;
+        }
         // Snapshot the main terminal buffer now; the overlay seeds the editor
         // PTY's temporary file with this text.
         void editorOverlay.open(getBufferText());
