@@ -57,7 +57,7 @@ async function main() {
     terminalOptions.fontFamily = fontFamily;
   }
 
-  const { handle, onData, onResize, loadAddon, focus } = await createGhosttyTerminal(
+  const { handle, onData, onResize, loadAddon, focus, getBufferText } = await createGhosttyTerminal(
     container,
     { init, createTerminal: (opts) => new Terminal(opts) },
     terminalOptions,
@@ -123,7 +123,10 @@ async function main() {
       if (event.ctrlKey && event.shiftKey && !event.altKey && !event.metaKey && event.code === "KeyE") {
         event.preventDefault();
         event.stopPropagation();
-        void editorOverlay?.open();
+        if (!editorOverlay || editorOverlay.isActive()) return;
+        // Snapshot the main terminal buffer now; the overlay seeds the editor
+        // PTY's temporary file with this text.
+        void editorOverlay.open(getBufferText());
       }
     },
     { capture: true },
