@@ -27,7 +27,6 @@ function defaultOptions(overrides?: Partial<CliOptions>): CliOptions {
   return {
     command: "sh",
     args: [],
-    readonly: false,
     port: 0,
     open: false,
     fontFamily: "",
@@ -138,41 +137,6 @@ describe("run", () => {
     if (readyInfo === undefined) throw new Error("onReady not called");
     const url = new URL(readyInfo.url);
     expect(url.searchParams.get("scrollback")).toBe("120000");
-
-    mockPty.emitExit(0);
-    await runPromise;
-  });
-
-  test("--readonly sets initial readonly on session", async () => {
-    const mockPty = new MockPtyAdapter();
-    let readyInfo: ReadyInfo | undefined;
-
-    const runPromise = run(defaultOptions({ readonly: true, port: 0 }), {
-      createPty: () => mockPty,
-      onReady: (info) => {
-        readyInfo = info;
-      },
-    });
-
-    await Bun.sleep(100);
-    if (readyInfo === undefined) throw new Error("onReady not called");
-
-    const wsUrl = `ws://127.0.0.1:${readyInfo.port}/ws?t=${readyInfo.token}`;
-    const ws = new WebSocket(wsUrl);
-    const helloMsg = await new Promise<string>((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error("timeout")), 3000);
-      ws.onmessage = (evt) => {
-        clearTimeout(timer);
-        resolve(evt.data as string);
-      };
-      ws.onerror = () => {
-        clearTimeout(timer);
-        reject(new Error("ws error"));
-      };
-    });
-    const hello = JSON.parse(helloMsg);
-    expect(hello.readonly).toBe(true);
-    ws.close();
 
     mockPty.emitExit(0);
     await runPromise;

@@ -25,26 +25,6 @@ describe("parseClientMessage", () => {
     });
   });
 
-  describe("readonly", () => {
-    it("parses a valid readonly message (enabled)", () => {
-      const msg = parseClientMessage('{"t":"readonly","enabled":true}');
-      expect(msg).toEqual({ t: "readonly", enabled: true });
-    });
-
-    it("parses a valid readonly message (disabled)", () => {
-      const msg = parseClientMessage('{"t":"readonly","enabled":false}');
-      expect(msg).toEqual({ t: "readonly", enabled: false });
-    });
-
-    it("rejects readonly with missing enabled", () => {
-      expect(() => parseClientMessage('{"t":"readonly"}')).toThrow(ProtocolError);
-    });
-
-    it("rejects readonly with non-boolean enabled", () => {
-      expect(() => parseClientMessage('{"t":"readonly","enabled":"yes"}')).toThrow(ProtocolError);
-    });
-  });
-
   describe("ping", () => {
     it("parses a valid ping message", () => {
       const msg = parseClientMessage('{"t":"ping","ts":1700000000}');
@@ -70,14 +50,6 @@ describe("parseClientMessage", () => {
       }
     });
 
-    it("routes readonly to ReadonlyMessage", () => {
-      const msg = parseClientMessage('{"t":"readonly","enabled":true}');
-      expect(msg.t).toBe("readonly");
-      if (msg.t === "readonly") {
-        expect(msg.enabled).toBe(true);
-      }
-    });
-
     it("routes ping to PingMessage", () => {
       const msg = parseClientMessage('{"t":"ping","ts":12345}');
       expect(msg.t).toBe("ping");
@@ -90,6 +62,10 @@ describe("parseClientMessage", () => {
   describe("invalid payloads", () => {
     it("rejects unknown message type", () => {
       expect(() => parseClientMessage('{"t":"unknown","data":1}')).toThrow(ProtocolError);
+    });
+
+    it("rejects removed readonly message type", () => {
+      expect(() => parseClientMessage('{"t":"readonly","enabled":true}')).toThrow(ProtocolError);
     });
 
     it("rejects message with no t field", () => {
@@ -115,33 +91,8 @@ describe("parseClientMessage", () => {
 describe("parseServerMessage", () => {
   describe("hello", () => {
     it("parses a valid hello message", () => {
-      const msg = parseServerMessage('{"t":"hello","readonly":false}');
-      expect(msg).toEqual({ t: "hello", readonly: false });
-    });
-
-    it("parses hello with readonly true", () => {
-      const msg = parseServerMessage('{"t":"hello","readonly":true}');
-      expect(msg).toEqual({ t: "hello", readonly: true });
-    });
-
-    it("rejects hello with missing readonly", () => {
-      expect(() => parseServerMessage('{"t":"hello"}')).toThrow(ProtocolError);
-    });
-  });
-
-  describe("readonly", () => {
-    it("parses a valid readonly message (enabled)", () => {
-      const msg = parseServerMessage('{"t":"readonly","enabled":true}');
-      expect(msg).toEqual({ t: "readonly", enabled: true });
-    });
-
-    it("parses a valid readonly message (disabled)", () => {
-      const msg = parseServerMessage('{"t":"readonly","enabled":false}');
-      expect(msg).toEqual({ t: "readonly", enabled: false });
-    });
-
-    it("rejects readonly with missing enabled", () => {
-      expect(() => parseServerMessage('{"t":"readonly"}')).toThrow(ProtocolError);
+      const msg = parseServerMessage('{"t":"hello"}');
+      expect(msg).toEqual({ t: "hello" });
     });
   });
 
@@ -197,11 +148,8 @@ describe("parseServerMessage", () => {
 
   describe("discriminator routing", () => {
     it("routes hello to HelloMessage", () => {
-      const msg = parseServerMessage('{"t":"hello","readonly":false}');
+      const msg = parseServerMessage('{"t":"hello"}');
       expect(msg.t).toBe("hello");
-      if (msg.t === "hello") {
-        expect(msg.readonly).toBe(false);
-      }
     });
 
     it("routes exit to ExitMessage", () => {
@@ -209,14 +157,6 @@ describe("parseServerMessage", () => {
       expect(msg.t).toBe("exit");
       if (msg.t === "exit") {
         expect(msg.code).toBe(0);
-      }
-    });
-
-    it("routes readonly to ReadonlyMessage", () => {
-      const msg = parseServerMessage('{"t":"readonly","enabled":true}');
-      expect(msg.t).toBe("readonly");
-      if (msg.t === "readonly") {
-        expect(msg.enabled).toBe(true);
       }
     });
 
@@ -240,6 +180,10 @@ describe("parseServerMessage", () => {
   describe("invalid payloads", () => {
     it("rejects unknown message type", () => {
       expect(() => parseServerMessage('{"t":"unknown","data":1}')).toThrow(ProtocolError);
+    });
+
+    it("rejects removed readonly message type", () => {
+      expect(() => parseServerMessage('{"t":"readonly","enabled":true}')).toThrow(ProtocolError);
     });
 
     it("rejects message with no t field", () => {
