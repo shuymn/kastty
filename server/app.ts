@@ -38,24 +38,168 @@ export interface ServerOptions {
   maxPayloadLength?: number;
 }
 
-type WsData = { kind: "main" } | { kind: "editor" };
+/**
+ * One end of a WebSocket route (`/ws` or `/editor-ws`). Each channel owns its
+ * own client registry and translates raw frames into manager calls, so the
+ * top-level handlers route by `ws.data.channel` instead of branching on a kind
+ * discriminant. The resolved channel is stored on `ws.data` at upgrade time.
+ */
+interface Channel {
+  open(ws: ServerWebSocket<WsData>): void;
+  message(ws: ServerWebSocket<WsData>, data: string | Buffer): void;
+  close(ws: ServerWebSocket<WsData>): void;
+  /** Notify (optionally) and close every connection on this channel. */
+  closeAll(message?: ServerMessage): void;
+}
+
+interface WsData {
+  channel: Channel;
+}
+
+function serializeServerMessage(message: ServerMessage): string {
+  return JSON.stringify(message);
+}
+
+function sendServerMessage(ws: ServerWebSocket<WsData>, message: ServerMessage): void {
+  ws.send(serializeServerMessage(message));
+}
+
+function sendPong(ws: ServerWebSocket<WsData>, message: PingMessage): void {
+  sendServerMessage(ws, { t: "pong", ts: message.ts });
+}
+
+/**
+ * Close every socket, optionally sending one final control message first. Does
+ * not mutate any registry — the `close` handler owns deletion (and the editor
+ * teardown), so closing here and removing there keeps teardown exactly-once.
+ */
+function closeAllSockets(sockets: Iterable<ServerWebSocket<WsData>>, message?: ServerMessage): void {
+  const serializedMessage = message ? serializeServerMessage(message) : undefined;
+  for (const ws of sockets) {
+    if (serializedMessage) ws.send(serializedMessage);
+    ws.close();
+  }
+}
+
+function createMainChannel(session: SessionManager): Channel {
+  const clients = new Map<ServerWebSocket<WsData>, ClientConnection>();
+  return {
+    open(ws) {
+      try {
+        const client: ClientConnection = {
+          send(data: Uint8Array) {
+            ws.send(data);
+          },
+        };
+        const replayData = session.connect(client);
+        clients.set(ws, client);
+
+        sendServerMessage(ws, { t: "hello" });
+
+        if (replayData.length > 0) {
+          ws.send(replayData);
+        }
+      } catch {
+        ws.close(1008, "Connection rejected");
+      }
+    },
+    message(ws, data) {
+      if (typeof data !== "string") {
+        session.write(new Uint8Array(data));
+        return;
+      }
+      // No onInvalid: malformed control frames on the main channel are
+      // swallowed silently (unchanged behavior).
+      dispatchClientMessage(data, {
+        resize: (m) => session.resize(m.cols, m.rows),
+        ping: (m) => sendPong(ws, m),
+        "editor-open": () => {}, // ignored on the main terminal channel
+      });
+    },
+    close(ws) {
+      const client = clients.get(ws);
+      if (!client) return;
+      session.disconnect(client);
+      clients.delete(ws);
+    },
+    closeAll(message) {
+      closeAllSockets(clients.keys(), message);
+    },
+  };
+}
+
+function createEditorChannel(editor: EditorSessionManager): Channel {
+  const clients = new Map<ServerWebSocket<WsData>, EditorClient>();
+  return {
+    open(ws) {
+      // The editor PTY is launched lazily, when the client sends `editor-open`
+      // carrying the buffer text. Connecting alone only registers the client.
+      const client: EditorClient = {
+        send(data: Uint8Array) {
+          ws.send(data);
+        },
+        notify(message: ServerMessage) {
+          sendServerMessage(ws, message);
+        },
+        close() {
+          ws.close();
+        },
+      };
+      clients.set(ws, client);
+    },
+    message(ws, data) {
+      const client = clients.get(ws);
+      if (!client) return;
+      if (typeof data !== "string") {
+        editor.write(client, new Uint8Array(data));
+        return;
+      }
+      dispatchClientMessage(
+        data,
+        {
+          resize: (m) => editor.resize(client, m.cols, m.rows),
+          ping: (m) => sendPong(ws, m),
+          "editor-open": (m) => {
+            void editor.open(client, m.content);
+          },
+        },
+        // A malformed editor control payload (e.g. a type mismatch) would
+        // otherwise be dropped silently, leaving the overlay stuck connecting.
+        () => {
+          client.notify({ t: "error", message: "Invalid editor request" });
+          client.close();
+        },
+      );
+    },
+    close(ws) {
+      const client = clients.get(ws);
+      if (!client) return;
+      editor.disconnect(client);
+      clients.delete(ws);
+    },
+    closeAll(message) {
+      closeAllSockets(clients.keys(), message);
+    },
+  };
+}
 
 export function createServer(options: ServerOptions) {
-  const wsClients = new Map<ServerWebSocket<WsData>, ClientConnection>();
-  const editorClients = new Map<ServerWebSocket<WsData>, EditorClient>();
+  const mainChannel = createMainChannel(options.session);
+  const editorChannel = options.editor ? createEditorChannel(options.editor) : undefined;
+
+  const channelFor = (pathname: string): Channel | undefined => {
+    if (pathname === "/ws") return mainChannel;
+    if (pathname === "/editor-ws") return editorChannel; // undefined when no editor
+    return undefined;
+  };
 
   options.session.onExit((code) => {
-    for (const ws of wsClients.keys()) {
-      ws.send(JSON.stringify({ t: "exit", code } satisfies ServerMessage));
-      ws.close();
-    }
+    mainChannel.closeAll({ t: "exit", code });
     // Tear down any open editor overlay too: otherwise its PTY and temp file
     // stay alive waiting on a client disconnect that may never come. Closing is
     // enough — the `close` handler runs `disconnect()` and removes the entry, so
     // teardown happens exactly once (mirroring the main-client path above).
-    for (const ws of editorClients.keys()) {
-      ws.close();
-    }
+    editorChannel?.closeAll();
   });
 
   const fetch = (
@@ -74,139 +218,21 @@ export function createServer(options: ServerOptions) {
       return new Response(asset.body, { headers });
     }
 
-    if (url.pathname === "/ws") {
-      if (!isValidToken(url, options.token)) {
-        return new Response("Forbidden", { status: 403 });
-      }
-      const upgraded = server.upgrade(req, { data: { kind: "main" } });
-      if (upgraded) return undefined;
-      return new Response("WebSocket upgrade failed", { status: 500 });
+    const channel = channelFor(url.pathname);
+    if (!channel) return new Response("Not Found", { status: 404 });
+
+    if (!isValidToken(url, options.token)) {
+      return new Response("Forbidden", { status: 403 });
     }
-
-    if (url.pathname === "/editor-ws") {
-      if (!options.editor) {
-        return new Response("Not Found", { status: 404 });
-      }
-      if (!isValidToken(url, options.token)) {
-        return new Response("Forbidden", { status: 403 });
-      }
-      const upgraded = server.upgrade(req, { data: { kind: "editor" } });
-      if (upgraded) return undefined;
-      return new Response("WebSocket upgrade failed", { status: 500 });
-    }
-
-    return new Response("Not Found", { status: 404 });
-  };
-
-  const sendPong = (ws: ServerWebSocket<WsData>, message: PingMessage): void => {
-    ws.send(JSON.stringify({ t: "pong", ts: message.ts } satisfies ServerMessage));
-  };
-
-  const registerEditorClient = (ws: ServerWebSocket<WsData>): void => {
-    const editor = options.editor;
-    if (!editor) {
-      ws.close();
-      return;
-    }
-    // The editor PTY is launched lazily, when the client sends `editor-open`
-    // carrying the buffer text. Connecting alone only registers the client.
-    const client: EditorClient = {
-      send(data: Uint8Array) {
-        ws.send(data);
-      },
-      notify(message: ServerMessage) {
-        ws.send(JSON.stringify(message));
-      },
-      close() {
-        ws.close();
-      },
-    };
-    editorClients.set(ws, client);
-  };
-
-  const messageEditor = (ws: ServerWebSocket<WsData>, data: string | Buffer): void => {
-    const editor = options.editor;
-    const client = editorClients.get(ws);
-    if (!editor || !client) return;
-    if (typeof data !== "string") {
-      editor.write(client, new Uint8Array(data));
-      return;
-    }
-    dispatchClientMessage(
-      data,
-      {
-        resize: (m) => editor.resize(client, m.cols, m.rows),
-        ping: (m) => sendPong(ws, m),
-        "editor-open": (m) => {
-          void editor.open(client, m.content);
-        },
-      },
-      // A malformed editor control payload (e.g. a type mismatch) would
-      // otherwise be dropped silently, leaving the overlay stuck connecting.
-      () => {
-        client.notify({ t: "error", message: "Invalid editor request" });
-        client.close();
-      },
-    );
+    const upgraded = server.upgrade(req, { data: { channel } });
+    if (upgraded) return undefined;
+    return new Response("WebSocket upgrade failed", { status: 500 });
   };
 
   const websocket = {
-    open(ws: ServerWebSocket<WsData>) {
-      if (ws.data.kind === "editor") {
-        registerEditorClient(ws);
-        return;
-      }
-      try {
-        const client: ClientConnection = {
-          send(data: Uint8Array) {
-            ws.send(data);
-          },
-        };
-        const replayData = options.session.connect(client);
-        wsClients.set(ws, client);
-
-        ws.send(JSON.stringify({ t: "hello" } satisfies ServerMessage));
-
-        if (replayData.length > 0) {
-          ws.send(replayData);
-        }
-      } catch {
-        ws.close(1008, "Connection rejected");
-      }
-    },
-
-    message(ws: ServerWebSocket<WsData>, data: string | Buffer) {
-      if (ws.data.kind === "editor") {
-        messageEditor(ws, data);
-        return;
-      }
-      if (typeof data !== "string") {
-        options.session.write(new Uint8Array(data));
-      } else {
-        // No onInvalid: malformed control frames on the main channel are
-        // swallowed silently (unchanged behavior).
-        dispatchClientMessage(data, {
-          resize: (m) => options.session.resize(m.cols, m.rows),
-          ping: (m) => sendPong(ws, m),
-          "editor-open": () => {}, // ignored on the main terminal channel
-        });
-      }
-    },
-
-    close(ws: ServerWebSocket<WsData>) {
-      if (ws.data.kind === "editor") {
-        const client = editorClients.get(ws);
-        if (client) {
-          options.editor?.disconnect(client);
-          editorClients.delete(ws);
-        }
-        return;
-      }
-      const client = wsClients.get(ws);
-      if (!client) return;
-      options.session.disconnect(client);
-      wsClients.delete(ws);
-    },
+    open: (ws: ServerWebSocket<WsData>) => ws.data.channel.open(ws),
+    message: (ws: ServerWebSocket<WsData>, data: string | Buffer) => ws.data.channel.message(ws, data),
+    close: (ws: ServerWebSocket<WsData>) => ws.data.channel.close(ws),
 
     // Carried on the handler so every Bun.serve() caller (prod and tests)
     // enforces the same inbound frame limit without threading it separately.
