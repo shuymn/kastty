@@ -529,4 +529,17 @@ describe("editor overlay WebSocket", () => {
     expect(removedTempFiles).toHaveLength(1);
     expect(editor?.hasActiveSession()).toBe(false);
   });
+
+  it("reports an error and closes on an invalid editor control payload", async () => {
+    const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
+    const ws = new WebSocket(editorWsUrl);
+    ws.binaryType = "arraybuffer";
+    await waitForOpen(ws);
+    // Oversized editor-open content exceeds the protocol cap and fails parsing.
+    ws.send(JSON.stringify({ t: "editor-open", content: "a".repeat(1_000_001) }));
+
+    const msg = await waitForJsonMessage<{ t: string; message: string }>(ws);
+    expect(msg.t).toBe("error");
+    expect(editorPtys).toHaveLength(0);
+  });
 });

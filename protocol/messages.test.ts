@@ -63,6 +63,12 @@ describe("parseClientMessage", () => {
       const huge = "a".repeat(1_000_001);
       expect(() => parseClientMessage(JSON.stringify({ t: "editor-open", content: huge }))).toThrow(ProtocolError);
     });
+
+    it("parses editor-open with max-sized content", () => {
+      const max = "a".repeat(1_000_000);
+      const msg = parseClientMessage(JSON.stringify({ t: "editor-open", content: max }));
+      expect(msg).toEqual({ t: "editor-open", content: max });
+    });
   });
 
   describe("discriminator routing", () => {

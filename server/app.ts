@@ -83,6 +83,7 @@ export function createServer(options: ServerOptions) {
     handlers: {
       onResize: (cols: number, rows: number) => void;
       onEditorOpen?: (content: string) => void;
+      onInvalid?: () => void;
     },
   ): void => {
     try {
@@ -100,7 +101,8 @@ export function createServer(options: ServerOptions) {
           break;
       }
     } catch {
-      // invalid protocol message, ignore
+      // invalid protocol message; let the route decide whether to surface it
+      handlers.onInvalid?.();
     }
   };
 
@@ -138,6 +140,12 @@ export function createServer(options: ServerOptions) {
       onResize: (cols, rows) => editor.resize(client, cols, rows),
       onEditorOpen: (content) => {
         void editor.open(client, content);
+      },
+      // A malformed editor control payload (e.g. an oversized editor-open) would
+      // otherwise be dropped silently, leaving the overlay stuck connecting.
+      onInvalid: () => {
+        client.notify({ t: "error", message: "Invalid editor request" });
+        client.close();
       },
     });
   };
