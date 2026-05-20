@@ -29,6 +29,12 @@ export function createServer(options: ServerOptions) {
       ws.send(JSON.stringify({ t: "exit", code } satisfies ServerMessage));
       ws.close();
     }
+    // Tear down any open editor overlay too: otherwise its PTY and temp file
+    // stay alive waiting on a client disconnect that may never come.
+    for (const [ws, client] of editorClients) {
+      options.editor?.disconnect(client);
+      ws.close();
+    }
   });
 
   const fetch = (

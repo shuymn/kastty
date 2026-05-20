@@ -58,6 +58,11 @@ describe("parseClientMessage", () => {
     it("rejects editor-open with non-string content", () => {
       expect(() => parseClientMessage('{"t":"editor-open","content":42}')).toThrow(ProtocolError);
     });
+
+    it("rejects editor-open with oversized content", () => {
+      const huge = "a".repeat(1_000_001);
+      expect(() => parseClientMessage(JSON.stringify({ t: "editor-open", content: huge }))).toThrow(ProtocolError);
+    });
   });
 
   describe("discriminator routing", () => {
