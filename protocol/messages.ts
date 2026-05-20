@@ -88,3 +88,92 @@ export function parseClientMessage(json: string): ClientMessage {
 export function parseServerMessage(json: string): ServerMessage {
   return parseMessage(json, ServerMessageSchema, "server");
 }
+
+/**
+ * Exhaustive handler map for client messages, keyed by the `t` discriminant.
+ * Every message type must be handled (use an explicit no-op to ignore one);
+ * adding a member to {@link ClientMessage} then fails to compile at each call
+ * site until it is handled.
+ */
+type MessageHandlers<T extends { t: string }> = { [M in T as M["t"]]: (message: M) => void };
+
+export type ClientMessageHandlers = MessageHandlers<ClientMessage>;
+
+/** Exhaustive handler map for server messages. See {@link ClientMessageHandlers}. */
+export type ServerMessageHandlers = MessageHandlers<ServerMessage>;
+
+/**
+ * Parse a raw client frame and route it to the matching handler. Malformed
+ * frames are surfaced via `onInvalid` (when given) and otherwise swallowed; any
+ * non-{@link ProtocolError} is rethrown so real bugs are not hidden.
+ */
+function parseForDispatch<T>(
+  raw: string,
+  parse: (json: string) => T,
+  onInvalid?: (error: ProtocolError) => void,
+): T | undefined {
+  try {
+    return parse(raw);
+  } catch (error) {
+    if (error instanceof ProtocolError) {
+      onInvalid?.(error);
+      return undefined;
+    }
+    throw error;
+  }
+}
+
+export function dispatchClientMessage(
+  raw: string,
+  handlers: ClientMessageHandlers,
+  onInvalid?: (error: ProtocolError) => void,
+): void {
+  const message = parseForDispatch(raw, parseClientMessage, onInvalid);
+  if (!message) return;
+  switch (message.t) {
+    case "resize":
+      handlers.resize(message);
+      return;
+    case "ping":
+      handlers.ping(message);
+      return;
+    case "editor-open":
+      handlers["editor-open"](message);
+      return;
+    default: {
+      const _exhaustive: never = message;
+      throw new ProtocolError(`Unhandled client message: ${(_exhaustive as { t: string }).t}`);
+    }
+  }
+}
+
+/**
+ * Parse a raw server frame and route it to the matching handler. See
+ * {@link dispatchClientMessage} for the error-handling contract.
+ */
+export function dispatchServerMessage(
+  raw: string,
+  handlers: ServerMessageHandlers,
+  onInvalid?: (error: ProtocolError) => void,
+): void {
+  const message = parseForDispatch(raw, parseServerMessage, onInvalid);
+  if (!message) return;
+  switch (message.t) {
+    case "hello":
+      handlers.hello(message);
+      return;
+    case "exit":
+      handlers.exit(message);
+      return;
+    case "error":
+      handlers.error(message);
+      return;
+    case "pong":
+      handlers.pong(message);
+      return;
+    default: {
+      const _exhaustive: never = message;
+      throw new ProtocolError(`Unhandled server message: ${(_exhaustive as { t: string }).t}`);
+    }
+  }
+}
