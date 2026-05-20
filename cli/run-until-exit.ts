@@ -65,12 +65,15 @@ export function runUntilExit(
       resolve(code);
     };
 
+    // Subscribe to signals before registering the exit callback: if a future
+    // ExitSource fires onExit synchronously at registration, settle() runs and
+    // removes these listeners, so they must already be attached to be removed.
+    signals.on("SIGINT", onSigint);
+    signals.on("SIGTERM", onSigterm);
+
     session.onExit((code) => {
       stopServer();
       settle(code);
     });
-
-    signals.on("SIGINT", onSigint);
-    signals.on("SIGTERM", onSigterm);
   });
 }

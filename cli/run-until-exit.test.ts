@@ -117,6 +117,23 @@ describe("runUntilExit", () => {
     expect(server.stopCount).toBe(1);
   });
 
+  test("does not leak signal listeners when onExit fires synchronously at registration", async () => {
+    const server = new MockServer();
+    const signals = new MockSignals();
+    const syncSession: ExitSource = {
+      onExit(callback) {
+        callback(0);
+      },
+      destroy() {},
+    };
+
+    const promise = runUntilExit(syncSession, server, signals);
+
+    expect(await promise).toBe(0);
+    expect(signals.listenerCount("SIGINT")).toBe(0);
+    expect(signals.listenerCount("SIGTERM")).toBe(0);
+  });
+
   test("removes both signal listeners once settled", async () => {
     const { session, signals, promise } = createHarness();
 
