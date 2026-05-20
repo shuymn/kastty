@@ -1,3 +1,4 @@
+import { type ExtractableBuffer, extractBufferText } from "./buffer-extract.ts";
 import type { TerminalHandle } from "./terminal.ts";
 
 /**
@@ -30,6 +31,7 @@ export interface GhosttyTerminalInstance {
   attachCustomWheelEventHandler(handler: (event: WheelEvent) => boolean): void;
   rows: number;
   options: { fontSize: number; fontFamily?: string };
+  buffer: { normal: ExtractableBuffer };
 }
 
 export interface GhosttyModule {
@@ -46,6 +48,8 @@ export interface GhosttyAdapterResult {
   setFontSize(size: number): void;
   setFontFamily(family: string): void;
   scrollToBottom(): void;
+  /** Extract the normal-buffer (scrollback + screen) contents as plain text. */
+  getBufferText(): string;
 }
 
 /**
@@ -131,6 +135,9 @@ export async function createGhosttyTerminal(
     },
     scrollToBottom() {
       terminal.scrollToBottom();
+    },
+    getBufferText() {
+      return extractBufferText(terminal.buffer.normal);
     },
   };
 }

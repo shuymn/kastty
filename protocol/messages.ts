@@ -15,7 +15,18 @@ const PingMessageSchema = z.object({
   ts: z.number(),
 });
 
-const ClientMessageSchema = z.discriminatedUnion("t", [ResizeMessageSchema, PingMessageSchema]);
+const EditorOpenMessageSchema = z.object({
+  t: z.literal("editor-open"),
+  // Buffer text size is bounded by the WebSocket transport (maxPayloadLength),
+  // so the schema itself does not cap content length.
+  content: z.string(),
+});
+
+const ClientMessageSchema = z.discriminatedUnion("t", [
+  ResizeMessageSchema,
+  PingMessageSchema,
+  EditorOpenMessageSchema,
+]);
 
 const HelloMessageSchema = z.object({
   t: z.literal("hello"),
@@ -45,6 +56,7 @@ const ServerMessageSchema = z.discriminatedUnion("t", [
 
 export type ResizeMessage = z.infer<typeof ResizeMessageSchema>;
 export type PingMessage = z.infer<typeof PingMessageSchema>;
+export type EditorOpenMessage = z.infer<typeof EditorOpenMessageSchema>;
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 

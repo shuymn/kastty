@@ -134,6 +134,28 @@ describe("TerminalClient", () => {
     await waitFor(() => c.getState() === "connected");
   });
 
+  it("sends a queued editor-open request on socket open before hello", async () => {
+    const terminal = new MockTerminal();
+    const c = new TerminalClient({
+      terminal,
+      wsUrl: `ws://127.0.0.1:${server.port}`,
+    });
+    client = c;
+    server.received.length = 0;
+
+    c.requestOpen("scrollback content\n");
+    c.connect();
+    await server.waitForConnection();
+
+    await waitFor(() => server.received.length > 0);
+    expect(JSON.parse(server.received[0] as string)).toEqual({ t: "editor-open", content: "scrollback content\n" });
+    expect(c.getState()).toBe("connecting");
+
+    server.sendHello();
+    await waitFor(() => c.getState() === "connected");
+    expect(server.received).toHaveLength(1);
+  });
+
   it("writes incoming binary frames to terminal", async () => {
     const terminal = new MockTerminal();
     const c = new TerminalClient({

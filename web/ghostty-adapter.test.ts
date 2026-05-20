@@ -43,6 +43,16 @@ function setup() {
     attachCustomWheelEventHandler: attachCustomWheelEventHandlerMock,
     rows: 24,
     options: { fontSize: 14 },
+    buffer: {
+      normal: {
+        length: 2,
+        getLine(y: number) {
+          const text = ["line one", "line two"][y];
+          if (text === undefined) return undefined;
+          return { isWrapped: false, translateToString: () => text };
+        },
+      },
+    },
   };
 
   const initMock = mock(() => Promise.resolve());
@@ -145,6 +155,14 @@ describe("createGhosttyTerminal", () => {
     focus();
 
     expect(mocks.focus).toHaveBeenCalledTimes(1);
+  });
+
+  it("getBufferText extracts the normal buffer as plain text", async () => {
+    const { ghostty } = setup();
+
+    const { getBufferText } = await createGhosttyTerminal({} as HTMLElement, ghostty);
+
+    expect(getBufferText()).toBe("line one\nline two\n");
   });
 });
 
