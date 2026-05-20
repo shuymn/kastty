@@ -9,6 +9,7 @@ import { loadFontAssets } from "../server/fonts.ts";
 import { SessionManager } from "../session/session-manager.ts";
 import homepage from "../web/index.html";
 import type { CliOptions } from "./args.ts";
+import { runUntilExit } from "./run-until-exit.ts";
 
 export interface ReadyInfo {
   url: string;
@@ -98,30 +99,5 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
     await openFn(url);
   }
 
-  const exitCode = await new Promise<number>((resolve) => {
-    let settled = false;
-    const settle = (code: number) => {
-      if (settled) return;
-      settled = true;
-      process.off("SIGINT", handleSignal);
-      process.off("SIGTERM", handleSignal);
-      resolve(code);
-    };
-
-    session.onExit((code) => {
-      server.stop();
-      settle(code);
-    });
-
-    const handleSignal = () => {
-      session.destroy();
-      server.stop();
-      settle(128 + 2);
-    };
-
-    process.on("SIGINT", handleSignal);
-    process.on("SIGTERM", handleSignal);
-  });
-
-  return exitCode;
+  return runUntilExit(session, server);
 }
