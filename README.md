@@ -9,6 +9,7 @@ The name combines "cast" and "tty", with a nod to 「彁（ka）」— a ghost k
 - **Browser-based terminal** -- renders a full terminal in the browser using ghostty-web
 - **Localhost-only** -- binds to `127.0.0.1` with token-based authentication
 - **Replay buffer** -- new connections receive recent terminal history
+- **Editor overlay** -- open the current terminal buffer in your `$EDITOR` inside an in-browser overlay (`Ctrl+Shift+E`)
 - **Bundled fonts** -- ships with [M PLUS 1 Code](https://fonts.google.com/specimen/M+PLUS+1+Code) and [Nerd Fonts Symbols](https://www.nerdfonts.com/) for consistent CJK and icon rendering across environments
 - **Font customization** -- configurable terminal font family
 - **Tab title sync** -- browser tab title follows terminal OSC title updates, with state emoji
@@ -64,6 +65,23 @@ kastty --scrollback 200000 --replay-buffer-bytes 33554432
 # Start without opening the browser
 kastty --no-open
 ```
+
+## Editor overlay
+
+Press **`Ctrl+Shift+E`** to open the current terminal buffer in your editor. kastty snapshots the visible buffer and scrollback, writes it to a temporary file, and runs your editor in a dedicated PTY rendered as an overlay above the terminal. The main session keeps running untouched underneath.
+
+- The editor command is taken from **`$VISUAL`**, falling back to **`$EDITOR`**. Arguments are honored, e.g. `EDITOR="nvim -R"`. If neither is set, kastty shows an error and does not open the overlay.
+- While the overlay is focused, keystrokes go to the editor, not the main terminal.
+- Exiting the editor closes the overlay, removes the temporary file, and returns focus to the main terminal.
+- Only one overlay can be open at a time; pressing the shortcut again while it is open shows a notice instead of opening a second one.
+
+```bash
+# Use a specific editor for the overlay
+EDITOR=nvim kastty
+```
+
+> [!NOTE]
+> The buffer text is captured as plain text; ANSI colors and styling are not preserved. The shortcut is fixed to `Ctrl+Shift+E` (chosen to avoid clashing with browser copy/paste).
 
 ## Contributing
 
