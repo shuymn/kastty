@@ -4,6 +4,13 @@ import { parseClientMessage, type ServerMessage } from "../protocol/messages.ts"
 import { isValidToken, validateRequest } from "../security/middleware.ts";
 import type { ClientConnection, SessionManager } from "../session/session-manager.ts";
 
+/**
+ * Maximum size of a single inbound WebSocket frame. This is the size guard for
+ * `editor-open` payloads (the full normal buffer can be large), so the protocol
+ * schema itself leaves `content` unbounded and relies on this transport limit.
+ */
+export const MAX_WS_PAYLOAD_BYTES = 16 * 1024 * 1024;
+
 export interface StaticAsset {
   body: string | ArrayBuffer;
   contentType: string;

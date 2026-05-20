@@ -4,7 +4,7 @@ import { ReplayBuffer } from "../buffer/replay-buffer.ts";
 import { EditorSessionManager } from "../editor/editor-session-manager.ts";
 import { BunPtyAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
-import { createServer, type StaticAsset } from "../server/app.ts";
+import { createServer, MAX_WS_PAYLOAD_BYTES, type StaticAsset } from "../server/app.ts";
 import { loadFontAssets } from "../server/fonts.ts";
 import { SessionManager } from "../session/session-manager.ts";
 import homepage from "../web/index.html";
@@ -76,7 +76,7 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
       "/": homepage,
     },
     fetch: appFetch,
-    websocket,
+    websocket: { ...websocket, maxPayloadLength: MAX_WS_PAYLOAD_BYTES },
     port,
     hostname: "127.0.0.1",
   });

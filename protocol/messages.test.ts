@@ -59,15 +59,10 @@ describe("parseClientMessage", () => {
       expect(() => parseClientMessage('{"t":"editor-open","content":42}')).toThrow(ProtocolError);
     });
 
-    it("rejects editor-open with oversized content", () => {
-      const huge = "a".repeat(1_000_001);
-      expect(() => parseClientMessage(JSON.stringify({ t: "editor-open", content: huge }))).toThrow(ProtocolError);
-    });
-
-    it("parses editor-open with max-sized content", () => {
-      const max = "a".repeat(1_000_000);
-      const msg = parseClientMessage(JSON.stringify({ t: "editor-open", content: max }));
-      expect(msg).toEqual({ t: "editor-open", content: max });
+    it("parses editor-open with large content (size is bounded by the transport, not the schema)", () => {
+      const large = "a".repeat(2_000_000);
+      const msg = parseClientMessage(JSON.stringify({ t: "editor-open", content: large }));
+      expect(msg).toEqual({ t: "editor-open", content: large });
     });
   });
 

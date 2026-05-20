@@ -4,9 +4,6 @@ export class ProtocolError extends Error {
   override readonly name = "ProtocolError";
 }
 
-/** Upper bound on `editor-open` buffer content, to reject oversized payloads early. */
-const MAX_EDITOR_CONTENT_LENGTH = 1_000_000;
-
 const ResizeMessageSchema = z.object({
   t: z.literal("resize"),
   cols: z.number(),
@@ -20,7 +17,9 @@ const PingMessageSchema = z.object({
 
 const EditorOpenMessageSchema = z.object({
   t: z.literal("editor-open"),
-  content: z.string().max(MAX_EDITOR_CONTENT_LENGTH, "editor content too large"),
+  // Buffer text size is bounded by the WebSocket transport (maxPayloadLength),
+  // so the schema itself does not cap content length.
+  content: z.string(),
 });
 
 const ClientMessageSchema = z.discriminatedUnion("t", [

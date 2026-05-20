@@ -535,11 +535,14 @@ describe("editor overlay WebSocket", () => {
     const ws = new WebSocket(editorWsUrl);
     ws.binaryType = "arraybuffer";
     await waitForOpen(ws);
-    // Oversized editor-open content exceeds the protocol cap and fails parsing.
-    ws.send(JSON.stringify({ t: "editor-open", content: "a".repeat(1_000_001) }));
+    // A malformed editor-open (missing content) fails protocol parsing.
+    ws.send(JSON.stringify({ t: "editor-open" }));
 
     const msg = await waitForJsonMessage<{ t: string; message: string }>(ws);
     expect(msg.t).toBe("error");
     expect(editorPtys).toHaveLength(0);
+    // The server closes the connection after sending the error.
+    await Bun.sleep(50);
+    expect(ws.readyState).toBe(WebSocket.CLOSED);
   });
 });
