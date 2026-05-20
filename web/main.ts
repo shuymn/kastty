@@ -22,7 +22,7 @@ function loadFontCss(): Promise<void> {
     link.href = "/fonts.css";
     link.onload = () => {
       document.fonts
-        .load(`14px ${DEFAULT_FONT_FAMILY}`)
+        .load(`${DEFAULT_FONT_SIZE}px ${DEFAULT_FONT_FAMILY}`)
         .then(() => resolve())
         .catch(() => resolve());
     };
