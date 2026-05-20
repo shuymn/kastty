@@ -40,6 +40,26 @@ describe("parseClientMessage", () => {
     });
   });
 
+  describe("editor-open", () => {
+    it("parses a valid editor-open message", () => {
+      const msg = parseClientMessage('{"t":"editor-open","content":"hello\\nworld\\n"}');
+      expect(msg).toEqual({ t: "editor-open", content: "hello\nworld\n" });
+    });
+
+    it("parses editor-open with empty content", () => {
+      const msg = parseClientMessage('{"t":"editor-open","content":""}');
+      expect(msg).toEqual({ t: "editor-open", content: "" });
+    });
+
+    it("rejects editor-open with missing content", () => {
+      expect(() => parseClientMessage('{"t":"editor-open"}')).toThrow(ProtocolError);
+    });
+
+    it("rejects editor-open with non-string content", () => {
+      expect(() => parseClientMessage('{"t":"editor-open","content":42}')).toThrow(ProtocolError);
+    });
+  });
+
   describe("discriminator routing", () => {
     it("routes resize to ResizeMessage", () => {
       const msg = parseClientMessage('{"t":"resize","cols":80,"rows":24}');
@@ -55,6 +75,14 @@ describe("parseClientMessage", () => {
       expect(msg.t).toBe("ping");
       if (msg.t === "ping") {
         expect(msg.ts).toBe(12345);
+      }
+    });
+
+    it("routes editor-open to EditorOpenMessage", () => {
+      const msg = parseClientMessage('{"t":"editor-open","content":"buffer"}');
+      expect(msg.t).toBe("editor-open");
+      if (msg.t === "editor-open") {
+        expect(msg.content).toBe("buffer");
       }
     });
   });
