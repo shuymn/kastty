@@ -1,5 +1,8 @@
 # Changelog
 
+## [v0.0.7](https://github.com/shuymn/kastty/compare/v0.0.6...v0.0.7) - 2026-05-20
+- Revert "Revert "refactor: remove readonly feature"" by @shuymn in https://github.com/shuymn/kastty/pull/73
+
 ## [v0.0.6](https://github.com/shuymn/kastty/compare/v0.0.5...v0.0.6) - 2026-05-20
 - refactor: remove unnecessary copies and improve type safety by @shuymn in https://github.com/shuymn/kastty/pull/19
 - chore(renovate): use glob pattern in managerFilePatterns by @shuymn in https://github.com/shuymn/kastty/pull/21
