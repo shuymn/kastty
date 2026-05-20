@@ -1,4 +1,4 @@
-import { type EditorOpenMessage, parseServerMessage } from "../protocol/messages.ts";
+import { dispatchServerMessage, type EditorOpenMessage, type ResizeMessage } from "../protocol/messages.ts";
 import type { ConnectionState, TerminalHandle } from "./terminal.ts";
 
 export type StateChangeCallback = (state: ConnectionState) => void;
@@ -121,7 +121,7 @@ export class TerminalClient {
 
   sendResize(cols: number, rows: number): void {
     if (this.ws && this.state === "connected") {
-      this.ws.send(JSON.stringify({ t: "resize", cols, rows }));
+      this.ws.send(JSON.stringify({ t: "resize", cols, rows } satisfies ResizeMessage));
     }
   }
 
@@ -134,28 +134,21 @@ export class TerminalClient {
   }
 
   private handleControlMessage(raw: string): void {
-    try {
-      const msg = parseServerMessage(raw);
-      switch (msg.t) {
-        case "hello":
-          this.setState("connected");
-          break;
-        case "exit":
-          for (const cb of this.exitCallbacks) {
-            cb(msg.code);
-          }
-          break;
-        case "error":
-          for (const cb of this.errorCallbacks) {
-            cb(msg.message);
-          }
-          break;
-        case "pong":
-          break;
-      }
-    } catch {
-      // ignore malformed control messages
-    }
+    // No onInvalid: malformed control messages are ignored (unchanged behavior).
+    dispatchServerMessage(raw, {
+      hello: () => this.setState("connected"),
+      exit: (msg) => {
+        for (const cb of this.exitCallbacks) {
+          cb(msg.code);
+        }
+      },
+      error: (msg) => {
+        for (const cb of this.errorCallbacks) {
+          cb(msg.message);
+        }
+      },
+      pong: () => {},
+    });
   }
 
   private processTitleFromOutput(data: Uint8Array): void {
