@@ -1,4 +1,4 @@
-import { parseServerMessage } from "../protocol/messages.ts";
+import { type EditorOpenMessage, parseServerMessage } from "../protocol/messages.ts";
 import type { ConnectionState, TerminalHandle } from "./terminal.ts";
 
 export type StateChangeCallback = (state: ConnectionState) => void;
@@ -29,6 +29,7 @@ export class TerminalClient {
   private readonly errorCallbacks: ErrorCallback[] = [];
   private titleBuffer = "";
   private titleDecoder = new TextDecoder();
+  private pendingOpenMessage: string | null = null;
 
   constructor(options: TerminalClientOptions) {
     this.terminal = options.terminal;
@@ -43,6 +44,16 @@ export class TerminalClient {
     const ws = new WebSocket(this.wsUrl);
     ws.binaryType = "arraybuffer";
     this.ws = ws;
+
+    ws.addEventListener("open", () => {
+      // Flush the editor-open request before the server replies `hello`: the
+      // editor PTY is launched only once the server has received the buffer
+      // content, so this must go out before the connection is "connected".
+      if (this.pendingOpenMessage !== null) {
+        ws.send(this.pendingOpenMessage);
+        this.pendingOpenMessage = null;
+      }
+    });
 
     ws.addEventListener("message", (event) => {
       const { data } = event;
@@ -86,6 +97,20 @@ export class TerminalClient {
 
   onError(callback: ErrorCallback): void {
     this.errorCallbacks.push(callback);
+  }
+
+  /**
+   * Request an editor overlay carrying the extracted buffer `content`. The
+   * message is queued and sent as soon as the socket opens (must precede
+   * `hello`); call before {@link connect}.
+   */
+  requestOpen(content: string): void {
+    const message = JSON.stringify({ t: "editor-open", content } satisfies EditorOpenMessage);
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      this.ws.send(message);
+    } else {
+      this.pendingOpenMessage = message;
+    }
   }
 
   sendInput(data: Uint8Array | ArrayBuffer): void {
