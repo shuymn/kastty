@@ -4,6 +4,7 @@ import type { ConnectionState, TerminalHandle } from "./terminal.ts";
 export type StateChangeCallback = (state: ConnectionState) => void;
 export type ExitCallback = (code: number) => void;
 export type TitleChangeCallback = (title: string) => void;
+export type ErrorCallback = (message: string) => void;
 
 const ESC = "\u001b";
 const ESC_CODE = 0x1b;
@@ -25,6 +26,7 @@ export class TerminalClient {
   private readonly stateCallbacks: StateChangeCallback[] = [];
   private readonly exitCallbacks: ExitCallback[] = [];
   private readonly titleCallbacks: TitleChangeCallback[] = [];
+  private readonly errorCallbacks: ErrorCallback[] = [];
   private titleBuffer = "";
   private titleDecoder = new TextDecoder();
 
@@ -82,6 +84,10 @@ export class TerminalClient {
     this.titleCallbacks.push(callback);
   }
 
+  onError(callback: ErrorCallback): void {
+    this.errorCallbacks.push(callback);
+  }
+
   sendInput(data: Uint8Array | ArrayBuffer): void {
     if (this.ws && this.state === "connected") {
       this.ws.send(data);
@@ -115,6 +121,10 @@ export class TerminalClient {
           }
           break;
         case "error":
+          for (const cb of this.errorCallbacks) {
+            cb(msg.message);
+          }
+          break;
         case "pong":
           break;
       }
