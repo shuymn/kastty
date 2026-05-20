@@ -1,4 +1,4 @@
-import { unlink } from "node:fs/promises";
+import { unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ServerMessage } from "../protocol/messages.ts";
@@ -36,7 +36,11 @@ interface ActiveSession {
 
 async function defaultCreateTempFile(content: string): Promise<string> {
   const path = join(tmpdir(), `kastty-editor-${crypto.randomUUID()}.txt`);
-  await Bun.write(path, content);
+  // The buffer may contain secrets (tokens, command history), so create the
+  // file owner-only and exclusively (`wx`) so it is never readable by other
+  // local users and never reuses a pre-existing path. (`Bun.write` ignores the
+  // `mode` option, so node:fs is used here.)
+  await writeFile(path, content, { mode: 0o600, flag: "wx" });
   return path;
 }
 

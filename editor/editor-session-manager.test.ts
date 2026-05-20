@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { stat, unlink } from "node:fs/promises";
 import type { ServerMessage } from "../protocol/messages.ts";
 import type { PtyAdapter } from "../pty/adapter.ts";
 import { type EditorClient, EditorSessionManager } from "./editor-session-manager.ts";
@@ -105,6 +106,36 @@ describe("EditorSessionManager", () => {
     expect(ptys[0]?.started?.args).toEqual(["-c", 'vim "$@"', "kastty-editor", created[0] as string]);
     expect(client.notifications).toEqual([{ t: "hello" }]);
     expect(client.closed).toBe(false);
+  });
+
+  it("creates the temp file with owner-only (0600) permissions", async () => {
+    const ptys: FakePty[] = [];
+    let tmpPath = "";
+    // Use the real default createTempFile; capture the path on cleanup so the
+    // file can be inspected (and removed) without the default unlink racing us.
+    const manager = new EditorSessionManager({
+      env: { EDITOR: "vim" },
+      createPty: () => {
+        const pty = new FakePty();
+        ptys.push(pty);
+        return pty;
+      },
+      removeTempFile: async (path) => {
+        tmpPath = path;
+      },
+      logger: () => {},
+    });
+    const client = new FakeClient();
+
+    await manager.open(client, "secret token contents");
+    manager.disconnect(client);
+    await Bun.sleep(0);
+
+    expect(tmpPath).not.toBe("");
+    const info = await stat(tmpPath);
+    const mode = info.mode & 0o777;
+    await unlink(tmpPath);
+    expect(mode).toBe(0o600);
   });
 
   it("writes empty content to the temp file for an empty buffer", async () => {

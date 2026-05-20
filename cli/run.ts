@@ -4,7 +4,7 @@ import { ReplayBuffer } from "../buffer/replay-buffer.ts";
 import { EditorSessionManager } from "../editor/editor-session-manager.ts";
 import { BunPtyAdapter, type PtyAdapter } from "../pty/adapter.ts";
 import { generateToken } from "../security/token.ts";
-import { createServer, MAX_WS_PAYLOAD_BYTES, type StaticAsset } from "../server/app.ts";
+import { createServer, type StaticAsset } from "../server/app.ts";
 import { loadFontAssets } from "../server/fonts.ts";
 import { SessionManager } from "../session/session-manager.ts";
 import homepage from "../web/index.html";
@@ -69,14 +69,23 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
     assets.set(`/fonts/${name}`, { body: buf, contentType: "font/woff2", cacheControl: immutableCache });
   }
 
-  const { fetch: appFetch, websocket } = createServer({ session, token, port, assets, editor });
+  const { fetch: appFetch, websocket } = createServer({
+    session,
+    token,
+    port,
+    assets,
+    editor,
+    // Bound editor-open frames by the configured scrollback budget so large
+    // histories are not silently dropped at the transport layer.
+    maxPayloadLength: options.replayBufferBytes,
+  });
 
   const server = Bun.serve({
     routes: {
       "/": homepage,
     },
     fetch: appFetch,
-    websocket: { ...websocket, maxPayloadLength: MAX_WS_PAYLOAD_BYTES },
+    websocket,
     port,
     hostname: "127.0.0.1",
   });

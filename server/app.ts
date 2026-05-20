@@ -23,6 +23,13 @@ export interface ServerOptions {
   port: number;
   assets?: Map<string, StaticAsset>;
   editor?: EditorSessionManager;
+  /**
+   * Maximum inbound WebSocket frame size, applied to the returned `websocket`
+   * handler so every `Bun.serve()` caller enforces the same limit. Defaults to
+   * {@link MAX_WS_PAYLOAD_BYTES}; callers may raise it to match a larger
+   * configured scrollback.
+   */
+  maxPayloadLength?: number;
 }
 
 type WsData = { kind: "main" } | { kind: "editor" };
@@ -148,7 +155,7 @@ export function createServer(options: ServerOptions) {
       onEditorOpen: (content) => {
         void editor.open(client, content);
       },
-      // A malformed editor control payload (e.g. an oversized editor-open) would
+      // A malformed editor control payload (e.g. a type mismatch) would
       // otherwise be dropped silently, leaving the overlay stuck connecting.
       onInvalid: () => {
         client.notify({ t: "error", message: "Invalid editor request" });
@@ -208,6 +215,10 @@ export function createServer(options: ServerOptions) {
       options.session.disconnect(client);
       wsClients.delete(ws);
     },
+
+    // Carried on the handler so every Bun.serve() caller (prod and tests)
+    // enforces the same inbound frame limit without threading it separately.
+    maxPayloadLength: options.maxPayloadLength ?? MAX_WS_PAYLOAD_BYTES,
   };
 
   return { fetch, websocket };
