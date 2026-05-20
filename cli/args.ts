@@ -14,6 +14,7 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
 export interface CliOptions {
   command: string;
   args: string[];
+  readonly: boolean;
   port: number;
   open: boolean;
   fontFamily: string;
@@ -101,6 +102,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
     })
     .argument("[command]", "Command to run in PTY")
     .argument("[args...]", "Arguments for the command")
+    .option("--readonly", "Start in readonly mode", false)
     .option("--port <n>", "Port to listen on (0 for auto)", "0")
     .option("--font-family <name>", "Terminal font family", "")
     .option("--scrollback <lines>", "Terminal scrollback lines", String(DEFAULT_SCROLLBACK_LINES))
@@ -145,6 +147,7 @@ export function parseCliArgs(argv: string[]): CliOptions {
   return {
     command,
     args: commandArgs,
+    readonly: Boolean(parsed.readonly),
     port: Number.parseInt(parsed.port as string, 10),
     open: (parsed.open as boolean | undefined) ?? true,
     fontFamily: (parsed.fontFamily as string) || "",

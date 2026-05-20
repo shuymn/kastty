@@ -1,5 +1,11 @@
 import { describe, expect, it } from "bun:test";
-import { CONNECTING_TAB_PREFIX, DEFAULT_TAB_TITLE, DISCONNECTED_TAB_PREFIX, formatTabTitle } from "./tab-title.ts";
+import {
+  CONNECTING_TAB_PREFIX,
+  DEFAULT_TAB_TITLE,
+  DISCONNECTED_TAB_PREFIX,
+  formatTabTitle,
+  READONLY_TAB_PREFIX,
+} from "./tab-title.ts";
 
 describe("formatTabTitle", () => {
   it("uses terminal title in connected state", () => {
@@ -18,5 +24,14 @@ describe("formatTabTitle", () => {
 
   it("adds disconnected prefix after websocket closes", () => {
     expect(formatTabTitle("disconnected", "my-project")).toBe(`${DISCONNECTED_TAB_PREFIX} my-project`);
+  });
+
+  it("adds readonly prefix in connected state", () => {
+    expect(formatTabTitle("connected", "my-project", true)).toBe(`${READONLY_TAB_PREFIX} my-project`);
+  });
+
+  it("prioritizes connecting/disconnected over readonly prefix", () => {
+    expect(formatTabTitle("connecting", "my-project", true)).toBe(`${CONNECTING_TAB_PREFIX} my-project`);
+    expect(formatTabTitle("disconnected", "my-project", true)).toBe(`${DISCONNECTED_TAB_PREFIX} my-project`);
   });
 });

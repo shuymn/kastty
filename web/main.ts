@@ -4,6 +4,7 @@ import { createGhosttyTerminal } from "./ghostty-adapter.ts";
 import { formatTabTitle } from "./tab-title.ts";
 import type { ConnectionState } from "./terminal.ts";
 import { TerminalClient } from "./terminal-client.ts";
+import { UIControls } from "./ui-controls.ts";
 
 const DEFAULT_FONT_SIZE = 14;
 const DEFAULT_FONT_FAMILY = '"M PLUS 1 Code Variable", "Symbols Nerd Font Mono", monospace';
@@ -13,6 +14,58 @@ function parsePositiveInt(value: string | null): number | null {
   const parsed = Number.parseInt(value, 10);
   if (!Number.isInteger(parsed) || parsed <= 0) return null;
   return parsed;
+}
+
+function createControlsToolbar(controls: UIControls): HTMLElement {
+  const toolbar = document.createElement("div");
+  toolbar.id = "controls";
+  Object.assign(toolbar.style, {
+    display: "flex",
+    gap: "8px",
+    padding: "4px 8px",
+    background: "#1e1e1e",
+    color: "#ccc",
+    fontFamily: "system-ui, sans-serif",
+    fontSize: "13px",
+    alignItems: "center",
+    userSelect: "none",
+  });
+
+  const status = document.createElement("span");
+  status.id = "connection-status";
+  status.textContent = controls.getState().connectionState;
+
+  const fontLabel = document.createElement("span");
+  fontLabel.textContent = "Font:";
+
+  const fontMinus = document.createElement("button");
+  fontMinus.textContent = "\u2212";
+  fontMinus.title = "Decrease font size";
+  fontMinus.addEventListener("click", () => controls.decreaseFontSize());
+
+  const fontSize = document.createElement("span");
+  fontSize.id = "font-size";
+  fontSize.textContent = String(controls.getState().fontSize);
+
+  const fontPlus = document.createElement("button");
+  fontPlus.textContent = "+";
+  fontPlus.title = "Increase font size";
+  fontPlus.addEventListener("click", () => controls.increaseFontSize());
+
+  const readonlyBtn = document.createElement("button");
+  readonlyBtn.id = "readonly-toggle";
+  readonlyBtn.textContent = "Readonly: OFF";
+  readonlyBtn.addEventListener("click", () => controls.toggleReadonly());
+
+  toolbar.append(status, fontLabel, fontMinus, fontSize, fontPlus, readonlyBtn);
+
+  controls.onStateChange((state) => {
+    status.textContent = state.connectionState;
+    fontSize.textContent = String(state.fontSize);
+    readonlyBtn.textContent = `Readonly: ${state.readonly ? "ON" : "OFF"}`;
+  });
+
+  return toolbar;
 }
 
 function loadFontCss(): Promise<void> {
@@ -55,41 +108,58 @@ async function main() {
     terminalOptions.fontFamily = fontFamily;
   }
 
-  const { handle, onData, onResize, loadAddon, focus } = await createGhosttyTerminal(
+  const { handle, onData, onResize, loadAddon, focus, setFontSize } = await createGhosttyTerminal(
     container,
     { init, createTerminal: (opts) => new Terminal(opts) },
     terminalOptions,
   );
 
-  const client = new TerminalClient({ terminal: handle, wsUrl });
+  let client: TerminalClient | null = null;
   let lastCols = 0;
   let lastRows = 0;
   let connectionState: ConnectionState = "disconnected";
   let terminalTitle: string | null = null;
+  let readonlyEnabled = false;
 
   const updateDocumentTitle = () => {
-    document.title = formatTabTitle(connectionState, terminalTitle);
+    document.title = formatTabTitle(connectionState, terminalTitle, readonlyEnabled);
   };
 
   onResize((cols, rows) => {
     lastCols = cols;
     lastRows = rows;
-    client.sendResize(cols, rows);
+    client?.sendResize(cols, rows);
   });
 
   const fitAddon = new FitAddon();
   loadAddon(fitAddon);
 
+  const controls = new UIControls(
+    {
+      sendReadonly(enabled: boolean) {
+        client?.sendReadonly(enabled);
+      },
+      setFontSize,
+    },
+    DEFAULT_FONT_SIZE,
+  );
+  readonlyEnabled = controls.getState().readonly;
+
+  const toolbar = createControlsToolbar(controls);
+  container.parentElement?.insertBefore(toolbar, container);
+
   fitAddon.fit();
   fitAddon.observeResize();
 
+  client = new TerminalClient({ terminal: handle, wsUrl });
   updateDocumentTitle();
 
   client.onStateChange((state) => {
     connectionState = state;
+    controls.setConnectionState(state);
     updateDocumentTitle();
     if (state === "connected" && lastCols > 0 && lastRows > 0) {
-      client.sendResize(lastCols, lastRows);
+      client?.sendResize(lastCols, lastRows);
     }
   });
 
@@ -98,9 +168,21 @@ async function main() {
     updateDocumentTitle();
   });
 
+  client.onReadonlyChange((enabled) => {
+    controls.setReadonly(enabled);
+  });
+
+  controls.onStateChange((state) => {
+    if (readonlyEnabled === state.readonly) return;
+    readonlyEnabled = state.readonly;
+    updateDocumentTitle();
+  });
+
   const encoder = new TextEncoder();
   onData((data) => {
-    client.sendInput(encoder.encode(data));
+    if (!controls.isReadonly()) {
+      client?.sendInput(encoder.encode(data));
+    }
   });
 
   client.connect();

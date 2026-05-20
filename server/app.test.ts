@@ -137,10 +137,10 @@ describe("WebSocket", () => {
     const { wsUrl } = startServer();
     const ws = new WebSocket(wsUrl);
     try {
-      const msgPromise = waitForJsonMessage<{ t: string }>(ws);
+      const msgPromise = waitForJsonMessage<{ t: string; readonly: boolean }>(ws);
       await waitForOpen(ws);
       const data = await msgPromise;
-      expect(data).toEqual({ t: "hello" });
+      expect(data).toEqual({ t: "hello", readonly: false });
     } finally {
       ws.close();
     }
@@ -153,11 +153,11 @@ describe("WebSocket", () => {
     wsA.binaryType = "arraybuffer";
     wsB.binaryType = "arraybuffer";
     try {
-      const helloA = waitForJsonMessage<{ t: string }>(wsA);
-      const helloB = waitForJsonMessage<{ t: string }>(wsB);
+      const helloA = waitForJsonMessage<{ t: string; readonly: boolean }>(wsA);
+      const helloB = waitForJsonMessage<{ t: string; readonly: boolean }>(wsB);
       await Promise.all([waitForOpen(wsA), waitForOpen(wsB)]);
-      expect(await helloA).toEqual({ t: "hello" });
-      expect(await helloB).toEqual({ t: "hello" });
+      expect(await helloA).toEqual({ t: "hello", readonly: false });
+      expect(await helloB).toEqual({ t: "hello", readonly: false });
 
       const output = new TextEncoder().encode("shared output");
       mockPty.emitData(output);
@@ -220,6 +220,31 @@ describe("WebSocket", () => {
       expect(data).toEqual({ t: "pong", ts: 12345 });
     } finally {
       ws.close();
+    }
+  });
+
+  it("broadcasts readonly updates to all connected clients", async () => {
+    const { wsUrl } = startServer();
+    const wsA = new WebSocket(wsUrl);
+    const wsB = new WebSocket(wsUrl);
+    try {
+      const helloA = waitForJsonMessage<{ t: string; readonly: boolean }>(wsA);
+      const helloB = waitForJsonMessage<{ t: string; readonly: boolean }>(wsB);
+      await Promise.all([waitForOpen(wsA), waitForOpen(wsB)]);
+      await helloA;
+      await helloB;
+
+      wsA.send(JSON.stringify({ t: "readonly", enabled: true }));
+      const [msgA, msgB] = await Promise.all([
+        waitForJsonMessage<{ t: string; enabled: boolean }>(wsA),
+        waitForJsonMessage<{ t: string; enabled: boolean }>(wsB),
+      ]);
+
+      expect(msgA).toEqual({ t: "readonly", enabled: true });
+      expect(msgB).toEqual({ t: "readonly", enabled: true });
+    } finally {
+      wsA.close();
+      wsB.close();
     }
   });
 
@@ -287,8 +312,8 @@ describe("WebSocket", () => {
     const wsA = new WebSocket(wsUrl);
     const wsB = new WebSocket(wsUrl);
     try {
-      const helloA = waitForJsonMessage<{ t: string }>(wsA);
-      const helloB = waitForJsonMessage<{ t: string }>(wsB);
+      const helloA = waitForJsonMessage<{ t: string; readonly: boolean }>(wsA);
+      const helloB = waitForJsonMessage<{ t: string; readonly: boolean }>(wsB);
       await Promise.all([waitForOpen(wsA), waitForOpen(wsB)]);
       await helloA;
       await helloB;

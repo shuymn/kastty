@@ -10,15 +10,21 @@ const ResizeMessageSchema = z.object({
   rows: z.number(),
 });
 
+const ReadonlyMessageSchema = z.object({
+  t: z.literal("readonly"),
+  enabled: z.boolean(),
+});
+
 const PingMessageSchema = z.object({
   t: z.literal("ping"),
   ts: z.number(),
 });
 
-const ClientMessageSchema = z.discriminatedUnion("t", [ResizeMessageSchema, PingMessageSchema]);
+const ClientMessageSchema = z.discriminatedUnion("t", [ResizeMessageSchema, ReadonlyMessageSchema, PingMessageSchema]);
 
 const HelloMessageSchema = z.object({
   t: z.literal("hello"),
+  readonly: z.boolean(),
 });
 
 const ExitMessageSchema = z.object({
@@ -38,17 +44,20 @@ const PongMessageSchema = z.object({
 
 const ServerMessageSchema = z.discriminatedUnion("t", [
   HelloMessageSchema,
+  ReadonlyMessageSchema,
   ExitMessageSchema,
   ErrorMessageSchema,
   PongMessageSchema,
 ]);
 
 export type ResizeMessage = z.infer<typeof ResizeMessageSchema>;
+export type ReadonlyMessage = z.infer<typeof ReadonlyMessageSchema>;
 export type PingMessage = z.infer<typeof PingMessageSchema>;
 
 export type ClientMessage = z.infer<typeof ClientMessageSchema>;
 
 export type HelloMessage = z.infer<typeof HelloMessageSchema>;
+export type ReadonlyStateMessage = z.infer<typeof ReadonlyMessageSchema>;
 export type ExitMessage = z.infer<typeof ExitMessageSchema>;
 export type ErrorMessage = z.infer<typeof ErrorMessageSchema>;
 export type PongMessage = z.infer<typeof PongMessageSchema>;
