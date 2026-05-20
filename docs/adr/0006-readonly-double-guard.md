@@ -1,39 +1,37 @@
-# 0006: readonly を廃止
+# 0006: readonly を UI + サーバの二重ガードで実装
 
 ## Status
 
-Accepted
+Proposed
 
 ## Context
 
-kastty の readonly モードはデモ中の誤入力防止を目的としていた。実装方法として以下の選択肢があった：
+kastty の readonly モードはデモ中の誤入力防止を目的としている。実装方法として以下の選択肢がある：
 
 1. クライアント UI のみ（keydown 遮断）
 2. サーバ側のみ（WS 入力メッセージ破棄）
 3. UI + サーバの二重ガード
 
-当初は UI + サーバの二重ガードを採用したが、実運用では readonly を使う機会がなく、UI footer の存在も常時表示する価値に見合わなくなった。
+kastty はローカル専用のため悪意あるバイパスは脅威ではないが、DevTools が開いている状態でのデモ中に誤って WS にメッセージを送るケースなどは防ぎたい。
 
 ## Decision
 
-readonly 機能を廃止する。
+readonly を **クライアント UI（keydown 遮断）とサーバ（WS 入力メッセージ破棄）の二重ガード** で実装する。
 
-- クライアント側: readonly toggle と入力遮断を削除する
-- サーバ側: readonly 状態管理と入力破棄ガードを削除する
-- プロトコル: `readonly` 制御メッセージと `hello.readonly` を削除する
-- CLI: `--readonly` オプションを削除する
+- クライアント側: keydown イベントを遮断し、視覚的にも readonly 状態を表示する
+- サーバ側: readonly 有効時に受信した入力メッセージを PTY に write せず破棄する
 
 ## Consequences
 
 ### Positive
 
-- footer UI を削除でき、端末表示領域が常にシンプルになる
-- クライアント・サーバ・プロトコルから readonly 状態同期が消え、実装が単純になる
+- 確実に入力を防止できる（UI バイパスの心配が不要）
+- デモ中の安心感が高い
 
 ### Negative
 
-- 誤入力防止用の readonly モードは使えない
+- サーバ側に readonly 状態の管理が必要（ただし実装コストは低い）
 
 ### Neutral
 
-- localhost + token のアクセス制御方針は変更しない
+- readonly の切替は WS 制御メッセージまたは CLI フラグで行う

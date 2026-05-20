@@ -9,6 +9,7 @@ export class SessionManager {
   private pty: PtyAdapter;
   private replayBuffer: ReplayBuffer;
   private clients: Set<ClientConnection> = new Set();
+  private readonlyMode = false;
   private exitCallbacks: ((exitCode: number) => void)[] = [];
 
   constructor(pty: PtyAdapter, replayBuffer: ReplayBuffer) {
@@ -39,11 +40,20 @@ export class SessionManager {
   }
 
   write(data: string | Uint8Array): void {
+    if (this.readonlyMode) return;
     this.pty.write(data);
   }
 
   resize(cols: number, rows: number): void {
     this.pty.resize(cols, rows);
+  }
+
+  isReadonly(): boolean {
+    return this.readonlyMode;
+  }
+
+  setReadonly(enabled: boolean): void {
+    this.readonlyMode = enabled;
   }
 
   onExit(callback: (exitCode: number) => void): void {

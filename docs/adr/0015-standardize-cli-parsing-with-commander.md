@@ -35,4 +35,4 @@ Accepted
 
 ### Neutral
 
-- CLI の機能範囲は後続変更で `readonly` を廃止し、`port`, `font-family`, `scrollback`, `replay-buffer-bytes`, `open` を維持する
+- CLI の機能範囲（`readonly`, `port`, `font-family`, `scrollback`, `replay-buffer-bytes`, `open`）自体は変更しない

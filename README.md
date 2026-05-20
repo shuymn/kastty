@@ -8,9 +8,10 @@ The name combines "cast" and "tty", with a nod to 「彁（ka）」— a ghost k
 
 - **Browser-based terminal** -- renders a full terminal in the browser using ghostty-web
 - **Localhost-only** -- binds to `127.0.0.1` with token-based authentication
+- **Readonly mode** -- share your terminal without allowing input
 - **Replay buffer** -- new connections receive recent terminal history
 - **Bundled fonts** -- ships with [M PLUS 1 Code](https://fonts.google.com/specimen/M+PLUS+1+Code) and [Nerd Fonts Symbols](https://www.nerdfonts.com/) for consistent CJK and icon rendering across environments
-- **Font customization** -- configurable terminal font family
+- **Font customization** -- adjustable font size and family
 - **Tab title sync** -- browser tab title follows terminal OSC title updates, with state emoji
 - **Single dependency runtime** -- runs entirely on [Bun](https://bun.sh)
 
@@ -38,6 +39,7 @@ When no command is specified, kastty launches your default shell (`$SHELL`).
 | Option | Default | Description |
 |---|---|---|
 | `--port <n>` | `0` (auto) | Port to listen on |
+| `--readonly` | `false` | Start in readonly mode |
 | `--font-family <name>` | - | Terminal font family |
 | `--scrollback <lines>` | `50000` | Requested terminal scrollback lines in browser (approximate) |
 | `--replay-buffer-bytes <n>` | auto (from `--scrollback`) | Replay buffer size for reconnect restore |
@@ -51,6 +53,9 @@ When no command is specified, kastty launches your default shell (`$SHELL`).
 ```bash
 # Start an interactive shell session
 kastty
+
+# Share a readonly session on port 8080
+kastty --readonly --port 8080
 
 # Run a specific command with a custom font
 kastty --font-family "Fira Code" -- htop
