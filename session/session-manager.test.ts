@@ -52,11 +52,10 @@ function createMockClient(): ClientConnection & { received: Uint8Array[] } {
 }
 
 describe("SessionManager", () => {
-  function setup(opts?: { readonly?: boolean }) {
+  function setup() {
     const pty = new MockPtyAdapter();
     const replayBuffer = new ReplayBuffer(256);
     const session = new SessionManager(pty, replayBuffer);
-    if (opts?.readonly) session.setReadonly(true);
     session.start("/bin/sh");
     return { pty, replayBuffer, session };
   }
@@ -127,16 +126,7 @@ describe("SessionManager", () => {
     expect(replay).toEqual(new Uint8Array([10, 20, 30]));
   });
 
-  it("prevents PTY write when readonly is enabled", () => {
-    const { pty, session } = setup({ readonly: true });
-    const client = createMockClient();
-    session.connect(client);
-
-    session.write("should be discarded");
-    expect(pty.writes).toEqual([]);
-  });
-
-  it("allows PTY write when readonly is disabled", () => {
+  it("writes input to PTY", () => {
     const { pty, session } = setup();
     const client = createMockClient();
     session.connect(client);

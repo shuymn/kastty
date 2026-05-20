@@ -1,12 +1,12 @@
-import type { ServerMessage } from "../protocol/messages.ts";
+import { parseServerMessage } from "../protocol/messages.ts";
 import type { ConnectionState, TerminalHandle } from "./terminal.ts";
 
 export type StateChangeCallback = (state: ConnectionState) => void;
 export type ExitCallback = (code: number) => void;
 export type TitleChangeCallback = (title: string) => void;
-export type ReadonlyChangeCallback = (enabled: boolean) => void;
 
 const ESC = "\u001b";
+const ESC_CODE = 0x1b;
 const OSC_PREFIX = `${ESC}]`;
 const BEL = "\u0007";
 const ST = `${ESC}\\`;
@@ -25,7 +25,6 @@ export class TerminalClient {
   private readonly stateCallbacks: StateChangeCallback[] = [];
   private readonly exitCallbacks: ExitCallback[] = [];
   private readonly titleCallbacks: TitleChangeCallback[] = [];
-  private readonly readonlyCallbacks: ReadonlyChangeCallback[] = [];
   private titleBuffer = "";
   private titleDecoder = new TextDecoder();
 
@@ -83,10 +82,6 @@ export class TerminalClient {
     this.titleCallbacks.push(callback);
   }
 
-  onReadonlyChange(callback: ReadonlyChangeCallback): void {
-    this.readonlyCallbacks.push(callback);
-  }
-
   sendInput(data: Uint8Array | ArrayBuffer): void {
     if (this.ws && this.state === "connected") {
       this.ws.send(data);
@@ -96,12 +91,6 @@ export class TerminalClient {
   sendResize(cols: number, rows: number): void {
     if (this.ws && this.state === "connected") {
       this.ws.send(JSON.stringify({ t: "resize", cols, rows }));
-    }
-  }
-
-  sendReadonly(enabled: boolean): void {
-    if (this.ws && this.state === "connected") {
-      this.ws.send(JSON.stringify({ t: "readonly", enabled }));
     }
   }
 
@@ -115,18 +104,10 @@ export class TerminalClient {
 
   private handleControlMessage(raw: string): void {
     try {
-      const msg = JSON.parse(raw) as ServerMessage;
+      const msg = parseServerMessage(raw);
       switch (msg.t) {
         case "hello":
-          for (const cb of this.readonlyCallbacks) {
-            cb(msg.readonly);
-          }
           this.setState("connected");
-          break;
-        case "readonly":
-          for (const cb of this.readonlyCallbacks) {
-            cb(msg.enabled);
-          }
           break;
         case "exit":
           for (const cb of this.exitCallbacks) {
@@ -143,6 +124,8 @@ export class TerminalClient {
   }
 
   private processTitleFromOutput(data: Uint8Array): void {
+    if (this.titleBuffer.length === 0 && !data.includes(ESC_CODE)) return;
+
     const decoded = this.titleDecoder.decode(data, { stream: true });
     if (decoded.length === 0) return;
     this.titleBuffer += decoded;

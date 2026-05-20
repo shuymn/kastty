@@ -3,13 +3,8 @@ import type { ConnectionState } from "./terminal.ts";
 export const DEFAULT_TAB_TITLE = "kastty";
 export const CONNECTING_TAB_PREFIX = "\ud83d\udfe1";
 export const DISCONNECTED_TAB_PREFIX = "\ud83d\udd34";
-export const READONLY_TAB_PREFIX = "\ud83d\udd12";
 
-export function formatTabTitle(
-  connectionState: ConnectionState,
-  terminalTitle: string | null,
-  readonlyEnabled = false,
-): string {
+export function formatTabTitle(connectionState: ConnectionState, terminalTitle: string | null): string {
   const normalizedTerminalTitle = terminalTitle?.trim();
   const baseTitle =
     normalizedTerminalTitle && normalizedTerminalTitle.length > 0 ? normalizedTerminalTitle : DEFAULT_TAB_TITLE;
@@ -20,10 +15,6 @@ export function formatTabTitle(
 
   if (connectionState === "connecting") {
     return `${CONNECTING_TAB_PREFIX} ${baseTitle}`;
-  }
-
-  if (readonlyEnabled) {
-    return `${READONLY_TAB_PREFIX} ${baseTitle}`;
   }
 
   return baseTitle;

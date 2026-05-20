@@ -74,11 +74,8 @@ function createTestServer() {
         pendingResolve = resolve;
       });
     },
-    sendHello(readonly = false) {
-      requireWs().send(JSON.stringify({ t: "hello", readonly }));
-    },
-    sendReadonly(enabled: boolean) {
-      requireWs().send(JSON.stringify({ t: "readonly", enabled }));
+    sendHello() {
+      requireWs().send(JSON.stringify({ t: "hello" }));
     },
     sendBinary(data: Uint8Array) {
       requireWs().send(data);
@@ -283,27 +280,5 @@ describe("TerminalClient", () => {
     await waitFor(() => c.getState() === "disconnected");
 
     expect(states).toEqual(["connecting", "connected", "disconnected"]);
-  });
-
-  it("updates readonly state from hello and readonly control messages", async () => {
-    const terminal = new MockTerminal();
-    const readonlyStates: boolean[] = [];
-    const c = new TerminalClient({
-      terminal,
-      wsUrl: `ws://127.0.0.1:${server.port}`,
-    });
-    client = c;
-    c.onReadonlyChange((enabled) => readonlyStates.push(enabled));
-
-    c.connect();
-    await server.waitForConnection();
-    server.sendHello(true);
-    await waitFor(() => c.getState() === "connected");
-    await waitFor(() => readonlyStates.length === 1);
-
-    server.sendReadonly(false);
-    await waitFor(() => readonlyStates.length === 2);
-
-    expect(readonlyStates).toEqual([true, false]);
   });
 });

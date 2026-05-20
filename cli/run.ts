@@ -48,10 +48,6 @@ export async function run(options: CliOptions, deps?: RunDeps): Promise<number> 
   const session = new SessionManager(pty, replayBuffer);
   const token = generateToken();
 
-  if (options.readonly) {
-    session.setReadonly(true);
-  }
-
   const port = resolvePort(options.port);
   const [wasmBuffer, fontAssets] = await Promise.all([loadWasm(), loadFontAssets()]);
 
