@@ -50,9 +50,10 @@ export function createServer(options: ServerOptions) {
       ws.close();
     }
     // Tear down any open editor overlay too: otherwise its PTY and temp file
-    // stay alive waiting on a client disconnect that may never come.
-    for (const [ws, client] of editorClients) {
-      options.editor?.disconnect(client);
+    // stay alive waiting on a client disconnect that may never come. Closing is
+    // enough — the `close` handler runs `disconnect()` and removes the entry, so
+    // teardown happens exactly once (mirroring the main-client path above).
+    for (const ws of editorClients.keys()) {
       ws.close();
     }
   });

@@ -530,6 +530,22 @@ describe("editor overlay WebSocket", () => {
     expect(editor?.hasActiveSession()).toBe(false);
   });
 
+  it("tears down an open editor overlay exactly once when the main PTY exits", async () => {
+    const { editorWsUrl, editor, editorPtys, removedTempFiles, mockPty } = startServer({ withEditor: {} });
+    const ws = await connectEditor(editorWsUrl);
+    await waitForJsonMessage<{ t: string }>(ws);
+    expect(editor?.hasActiveSession()).toBe(true);
+
+    mockPty.emitExit(0);
+    await Bun.sleep(100);
+
+    expect(ws.readyState).toBe(WebSocket.CLOSED);
+    expect(editorPtys[0]?.destroyed).toBe(true);
+    // disconnect() runs once (not once here + again from the close handler).
+    expect(removedTempFiles).toEqual(["/tmp/kastty-editor-test-0.txt"]);
+    expect(editor?.hasActiveSession()).toBe(false);
+  });
+
   it("reports an error and closes on an invalid editor control payload", async () => {
     const { editorWsUrl, editorPtys } = startServer({ withEditor: {} });
     const ws = new WebSocket(editorWsUrl);
