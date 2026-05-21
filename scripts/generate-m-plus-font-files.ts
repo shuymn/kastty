@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 // @ts-expect-error -- Bun resolves this CSS file as plain text at runtime
 import mPlusCss from "@fontsource-variable/m-plus-1-code/index.css" with { type: "text" };
 
-const OUTPUT_FILE = fileURLToPath(new URL("../server/m-plus-font-files.ts", import.meta.url));
+const OUTPUT_FILE = fileURLToPath(new URL("../src/server/m-plus-font-files.ts", import.meta.url));
 const SOURCE_PACKAGE = "@fontsource-variable/m-plus-1-code";
 const GENERATOR_SCRIPT = "scripts/generate-m-plus-font-files.ts";
 

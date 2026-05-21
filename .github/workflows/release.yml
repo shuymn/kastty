@@ -95,7 +95,7 @@ jobs:
             bun build \
               --compile \
               --target="$target" \
-              index.ts \
+              src/index.ts \
               --outfile "$outfile" \
               --define KASTTY_VERSION='\"'"$RELEASE_TAG"'\"' \
               --define KASTTY_SHORT_SHA='\"'"$short_sha"'\"'

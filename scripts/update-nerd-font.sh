@@ -3,12 +3,12 @@ set -euo pipefail
 
 # Fetch the pinned NerdFontsSymbolsOnly release (or a CLI-specified version),
 # convert to WOFF2,
-# and place it in web/fonts/.
+# and place it in src/web/fonts/.
 #
 # Requirements: gh, tar, uv (for fonttools/brotli)
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-DEST_DIR="$REPO_ROOT/web/fonts"
+DEST_DIR="$REPO_ROOT/src/web/fonts"
 FONT_NAME="SymbolsNerdFontMono-Regular"
 NERD_FONTS_REPO="ryanoasis/nerd-fonts"
 NERD_FONTS_ARCHIVE="NerdFontsSymbolsOnly.tar.xz"
