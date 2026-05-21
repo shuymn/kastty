@@ -1,4 +1,4 @@
 {
   "extends": "@tsconfig/bun/tsconfig.json",
-  "exclude": ["web", "node_modules"]
+  "exclude": ["src/web", "node_modules"]
 }

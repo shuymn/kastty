@@ -75,17 +75,17 @@ jobs:
         run: |
           set -euo pipefail
 
-          first_font_hash="$(sha256sum web/fonts/SymbolsNerdFontMono-Regular.woff2 | awk '{print $1}')"
-          first_license_hash="$(sha256sum web/fonts/NerdFontsSymbolsOnly-LICENSE | awk '{print $1}')"
+          first_font_hash="$(sha256sum src/web/fonts/SymbolsNerdFontMono-Regular.woff2 | awk '{print $1}')"
+          first_license_hash="$(sha256sum src/web/fonts/NerdFontsSymbolsOnly-LICENSE | awk '{print $1}')"
 
           ./scripts/update-nerd-font.sh
 
-          second_font_hash="$(sha256sum web/fonts/SymbolsNerdFontMono-Regular.woff2 | awk '{print $1}')"
-          second_license_hash="$(sha256sum web/fonts/NerdFontsSymbolsOnly-LICENSE | awk '{print $1}')"
+          second_font_hash="$(sha256sum src/web/fonts/SymbolsNerdFontMono-Regular.woff2 | awk '{print $1}')"
+          second_license_hash="$(sha256sum src/web/fonts/NerdFontsSymbolsOnly-LICENSE | awk '{print $1}')"
 
           if [[ "${first_font_hash}" != "${second_font_hash}" || "${first_license_hash}" != "${second_license_hash}" ]]; then
             echo "Nerd Font asset generation is not idempotent"
-            git diff -- web/fonts/SymbolsNerdFontMono-Regular.woff2 web/fonts/NerdFontsSymbolsOnly-LICENSE || true
+            git diff -- src/web/fonts/SymbolsNerdFontMono-Regular.woff2 src/web/fonts/NerdFontsSymbolsOnly-LICENSE || true
             exit 1
           fi
 
@@ -96,14 +96,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ -z "$(git status --porcelain -- web/fonts/SymbolsNerdFontMono-Regular.woff2 web/fonts/NerdFontsSymbolsOnly-LICENSE)" ]]; then
+          if [[ -z "$(git status --porcelain -- src/web/fonts/SymbolsNerdFontMono-Regular.woff2 src/web/fonts/NerdFontsSymbolsOnly-LICENSE)" ]]; then
             echo "No Nerd Font asset changes detected"
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/fonts/SymbolsNerdFontMono-Regular.woff2 web/fonts/NerdFontsSymbolsOnly-LICENSE
+          git add src/web/fonts/SymbolsNerdFontMono-Regular.woff2 src/web/fonts/NerdFontsSymbolsOnly-LICENSE
           git commit -m "chore: refresh Nerd Font assets"
 
           for attempt in 1 2 3; do

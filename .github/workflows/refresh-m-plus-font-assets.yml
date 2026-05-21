@@ -79,14 +79,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ -z "$(git status --porcelain -- server/m-plus-font-files.ts)" ]]; then
+          if [[ -z "$(git status --porcelain -- src/server/m-plus-font-files.ts)" ]]; then
             echo "No M PLUS font map changes detected"
             exit 0
           fi
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add server/m-plus-font-files.ts
+          git add src/server/m-plus-font-files.ts
           git commit -m "chore: refresh M PLUS font asset map"
 
           for attempt in 1 2 3; do

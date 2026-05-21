@@ -1,14 +1,14 @@
 {
   "name": "kastty",
-  "module": "index.ts",
+  "module": "src/index.ts",
   "type": "module",
   "private": true,
   "scripts": {
     "lint": "biome lint .",
     "lint:fix": "biome lint --fix .",
     "fmt": "biome format --fix .",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p web",
-    "build": "bun build --compile index.ts --outfile kastty",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p src/web",
+    "build": "bun build --compile src/index.ts --outfile kastty",
     "gen:m-plus-font-files": "bun scripts/generate-m-plus-font-files.ts",
     "check:generated": "bun scripts/generate-m-plus-font-files.ts --check",
     "check": "biome check --fix . && bun run check:generated && bun run typecheck && bun test"
