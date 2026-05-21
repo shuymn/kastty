@@ -1,14 +1,46 @@
+assert_lefthook_installed: true
+glob_matcher: doublestar
+no_tty: true
+skip_lfs: true
+
+output:
+  - summary
+  - failure
+  - execution
+  - execution_out
+
 commit-msg:
   commands:
     commitlint:
       run: bun run commitlint --edit {1}
 
 pre-commit:
-  parallel: true
+  parallel: false
+  piped: true
+
   commands:
     check:
-      glob: "*.{js,ts,cjs,mjs,d.cts,d.mts,jsx,tsx,json,jsonc}"
+      tags: [format, lint]
+      glob: "**/*.{js,jsx,ts,tsx,json,jsonc}"
       exclude:
         - "docs/"
       run: bun run biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
       stage_fixed: true
+    typecheck:
+      tags: [types]
+      run: bun run typecheck
+    betterleaks:
+      tags: [security]
+      run: betterleaks git --pre-commit --staged --redact --no-banner --verbose
+
+  skip:
+    - merge: true
+    - rebase: true
+
+pre-push:
+  piped: true
+
+  commands:
+    checks:
+      tags: [format, lint, types, test]
+      run: bun run check
