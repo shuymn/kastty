@@ -1,5 +1,22 @@
 # Changelog
 
+## [v0.2.2](https://github.com/shuymn/kastty/compare/v0.2.1...v0.2.2) - 2026-06-27
+
+- docs(agents): condense instruction lines by @shuymn in https://github.com/shuymn/kastty/pull/79
+- refactor: move source files to src/ directory by @shuymn in https://github.com/shuymn/kastty/pull/81
+- Align config with bun template and add CI workflows by @shuymn in https://github.com/shuymn/kastty/pull/82
+- chore(deps): update dependency lefthook to v2.1.8 by @renovate[bot] in https://github.com/shuymn/kastty/pull/83
+- chore(deps): update dependency @biomejs/biome to v2.4.16 by @renovate[bot] in https://github.com/shuymn/kastty/pull/85
+- chore(deps): update commitlint monorepo to v21.0.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/86
+- chore(deps): update dependency lefthook to v2.1.9 by @renovate[bot] in https://github.com/shuymn/kastty/pull/87
+- chore(deps): update songmu/tagpr action to v1.20.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/89
+- chore(deps): update actions/checkout action to v6.0.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/90
+- fix(deps): update dependency commander to v15 by @renovate[bot] in https://github.com/shuymn/kastty/pull/88
+- chore(deps): update astral-sh/setup-uv action to v8.2.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/91
+- chore(deps): update dependency @biomejs/biome to v2.5.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/92
+- chore(deps): update dependency @biomejs/biome to v2.5.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/94
+- chore(deps): update commitlint monorepo to v21.1.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/95
+
 ## [v0.2.1](https://github.com/shuymn/kastty/compare/v0.2.0...v0.2.1) - 2026-05-20
 - refactor: consolidate protocol dispatch, extract shared modules, add Channel abstraction by @shuymn in https://github.com/shuymn/kastty/pull/77
 
