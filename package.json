@@ -14,7 +14,7 @@
     "check": "biome check --fix . && bun run check:generated && bun run typecheck && bun test"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.5",
+    "@biomejs/biome": "2.5.6",
     "@commitlint/cli": "21.2.1",
     "@commitlint/config-conventional": "21.2.0",
     "@tsconfig/bun": "1.0.10",
