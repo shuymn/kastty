@@ -1,5 +1,41 @@
 # Changelog
 
+## [v0.2.2](https://github.com/shuymn/kastty/compare/v0.2.1...v0.2.2) - 2026-08-21
+
+- docs(agents): condense instruction lines by @shuymn in https://github.com/shuymn/kastty/pull/79
+- refactor: move source files to src/ directory by @shuymn in https://github.com/shuymn/kastty/pull/81
+- Align config with bun template and add CI workflows by @shuymn in https://github.com/shuymn/kastty/pull/82
+- chore(deps): update dependency lefthook to v2.1.8 by @renovate[bot] in https://github.com/shuymn/kastty/pull/83
+- chore(deps): update dependency @biomejs/biome to v2.4.16 by @renovate[bot] in https://github.com/shuymn/kastty/pull/85
+- chore(deps): update commitlint monorepo to v21.0.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/86
+- chore(deps): update dependency lefthook to v2.1.9 by @renovate[bot] in https://github.com/shuymn/kastty/pull/87
+- chore(deps): update songmu/tagpr action to v1.20.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/89
+- chore(deps): update actions/checkout action to v6.0.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/90
+- fix(deps): update dependency commander to v15 by @renovate[bot] in https://github.com/shuymn/kastty/pull/88
+- chore(deps): update astral-sh/setup-uv action to v8.2.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/91
+- chore(deps): update dependency @biomejs/biome to v2.5.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/92
+- chore(deps): update dependency @biomejs/biome to v2.5.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/94
+- chore(deps): update commitlint monorepo to v21.1.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/95
+- chore(deps): update commitlint monorepo to v21.2.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/96
+- chore(deps): update dependency @biomejs/biome to v2.5.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/97
+- chore(deps): update astral-sh/setup-uv action to v8.3.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/98
+- chore(deps): update astral-sh/setup-uv action to v8.3.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/99
+- chore(deps): update astral-sh/setup-uv action to v8.3.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/100
+- chore(deps): update dependency @biomejs/biome to v2.5.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/101
+- chore(deps): update dependency @commitlint/cli to v21.2.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/102
+- chore(deps): update dependency lefthook to v2.1.10 by @renovate[bot] in https://github.com/shuymn/kastty/pull/104
+- chore(deps): update songmu/tagpr action to v1.20.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/105
+- chore(deps): update dependency @biomejs/biome to v2.5.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/106
+- chore(deps): update actions/checkout action to v6.1.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/107
+- chore(deps): update dependency @biomejs/biome to v2.5.5 by @renovate[bot] in https://github.com/shuymn/kastty/pull/108
+- chore(deps): update dependency @biomejs/biome to v2.5.6 by @renovate[bot] in https://github.com/shuymn/kastty/pull/110
+- chore(deps): update dependency ryanoasis/nerd-fonts to v3.5.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/111
+- chore(deps): update dependency @biomejs/biome to v2.5.7 by @renovate[bot] in https://github.com/shuymn/kastty/pull/112
+- chore(deps): update dependency @biomejs/biome to v2.5.8 by @renovate[bot] in https://github.com/shuymn/kastty/pull/113
+- chore(deps): update commitlint monorepo to v21.2.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/115
+- chore(deps): update dependency @tsconfig/bun to v1.0.11 by @renovate[bot] in https://github.com/shuymn/kastty/pull/116
+- chore(deps): update dependency @biomejs/biome to v2.5.9 by @renovate[bot] in https://github.com/shuymn/kastty/pull/117
+
 ## [v0.2.1](https://github.com/shuymn/kastty/compare/v0.2.0...v0.2.1) - 2026-05-20
 - refactor: consolidate protocol dispatch, extract shared modules, add Channel abstraction by @shuymn in https://github.com/shuymn/kastty/pull/77
 
