@@ -14,7 +14,7 @@ NERD_FONTS_REPO="ryanoasis/nerd-fonts"
 NERD_FONTS_ARCHIVE="NerdFontsSymbolsOnly.tar.xz"
 
 NERD_FONTS_VERSION="3.5.0"
-FONTTOOLS_VERSION="4.63.0"
+FONTTOOLS_VERSION="4.64.0"
 BROTLI_VERSION="1.2.0"
 
 # Resolve version
