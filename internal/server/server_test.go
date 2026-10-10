@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-
 	"github.com/shuymn/kastty/internal/host"
 	"github.com/shuymn/kastty/internal/protocol"
 )
@@ -54,8 +53,12 @@ func start(t *testing.T, script string, env map[string]string) *testServer {
 	if err != nil {
 		t.Fatal(err)
 	}
-	port := ln.Addr().(*net.TCPAddr).Port
-	srv := &http.Server{Handler: New(h, token, port, assets)}
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	if !ok {
+		t.Fatalf("listener address %v is not TCP", ln.Addr())
+	}
+	port := addr.Port
+	srv := &http.Server{Handler: New(h, token, port, assets), ReadHeaderTimeout: 5 * time.Second}
 	go func() { _ = srv.Serve(ln) }()
 	t.Cleanup(func() {
 		h.Shutdown(5 * time.Second)
@@ -85,15 +88,27 @@ func (s *testServer) get(t *testing.T, path string, header map[string]string) *h
 	return res
 }
 
-func (s *testServer) dial(t *testing.T, id string, subprotocols ...string) (*websocket.Conn, *http.Response, error) {
+func (s *testServer) dial(
+	t *testing.T,
+	id string,
+	subprotocols ...string,
+) (*websocket.Conn, *http.Response, error) {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	header := http.Header{"Origin": {s.base}}
-	return websocket.Dial(ctx, "ws"+strings.TrimPrefix(s.base, "http")+"/attach/"+id, &websocket.DialOptions{
-		Subprotocols: subprotocols,
-		HTTPHeader:   header,
-	})
+	c, res, err := websocket.Dial(
+		ctx,
+		"ws"+strings.TrimPrefix(s.base, "http")+"/attach/"+id,
+		&websocket.DialOptions{
+			Subprotocols: subprotocols,
+			HTTPHeader:   header,
+		},
+	)
+	if err != nil {
+		return nil, res, fmt.Errorf("dial %s: %w", id, err)
+	}
+	return c, res, nil
 }
 
 func (s *testServer) attach(t *testing.T, id string) *websocket.Conn {
@@ -103,7 +118,7 @@ func (s *testServer) attach(t *testing.T, id string) *websocket.Conn {
 		t.Fatal(err)
 	}
 	c.SetReadLimit(MaxMessageBytes)
-	t.Cleanup(func() { c.CloseNow() })
+	t.Cleanup(func() { _ = c.CloseNow() })
 	return c
 }
 
@@ -193,7 +208,13 @@ func TestPort80AcceptsHostAndOriginWithoutThePort(t *testing.T) {
 		w := httptest.NewRecorder()
 		s.ServeHTTP(w, r)
 		if w.Code != c.want {
-			t.Errorf("GET / with Host %q, Origin %q = %d, want %d", c.host, c.origin, w.Code, c.want)
+			t.Errorf(
+				"GET / with Host %q, Origin %q = %d, want %d",
+				c.host,
+				c.origin,
+				w.Code,
+				c.want,
+			)
 		}
 	}
 }
@@ -233,9 +254,12 @@ func TestServesTheViewAndItsAssets(t *testing.T) {
 func TestAttachRequiresTheTokenSubprotocol(t *testing.T) {
 	s := start(t, `sleep 30`, nil)
 	cases := map[string][]string{
-		"no subprotocols":   nil,
-		"no token":          {protocol.Subprotocol},
-		"wrong token":       {protocol.Subprotocol, protocol.AuthSubprotocolPrefix + strings.Repeat("0", 32)},
+		"no subprotocols": nil,
+		"no token":        {protocol.Subprotocol},
+		"wrong token": {
+			protocol.Subprotocol,
+			protocol.AuthSubprotocolPrefix + strings.Repeat("0", 32),
+		},
 		"token without v1":  {protocol.AuthSubprotocolPrefix + token},
 		"token as a prefix": {protocol.Subprotocol, protocol.AuthSubprotocolPrefix + token[:16]},
 	}
@@ -265,7 +289,11 @@ func TestAttachedViewReceivesStateAndControlsTheTerminal(t *testing.T) {
 	readBinaryUntil(t, c, "ready") // snapshot
 
 	ctx := context.Background()
-	_ = c.Write(ctx, websocket.MessageText, protocol.EncodeView(protocol.Resize{Size: protocol.Size{Cols: 120, Rows: 40}}))
+	_ = c.Write(
+		ctx,
+		websocket.MessageText,
+		protocol.EncodeView(protocol.Resize{Size: protocol.Size{Cols: 120, Rows: 40}}),
+	)
 	resized, _ := next[protocol.Resized](t, c)
 	if resized.Size != (protocol.Size{Cols: 120, Rows: 40}) {
 		t.Fatalf("resized = %+v", resized)
@@ -278,7 +306,11 @@ func TestInvalidControlMessageClosesTheConnection(t *testing.T) {
 	s := start(t, `sleep 30`, nil)
 	c := s.attach(t, "main")
 	next[protocol.Attached](t, c)
-	_ = c.Write(context.Background(), websocket.MessageText, []byte(`{"t":"resize","cols":0,"rows":1}`))
+	_ = c.Write(
+		context.Background(),
+		websocket.MessageText,
+		[]byte(`{"t":"resize","cols":0,"rows":1}`),
+	)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	for {
@@ -295,12 +327,20 @@ func TestInvalidControlMessageClosesTheConnection(t *testing.T) {
 }
 
 func TestOpenEditorOverTheWire(t *testing.T) {
-	s := start(t, `printf 'main text\n'; sleep 30`, map[string]string{"EDITOR": `cat "$1"; read _ #`})
+	s := start(
+		t,
+		`printf 'main text\n'; sleep 30`,
+		map[string]string{"EDITOR": `cat "$1"; read _ #`},
+	)
 	time.Sleep(300 * time.Millisecond)
 	c := s.attach(t, "main")
 	next[protocol.Attached](t, c)
 
-	_ = c.Write(context.Background(), websocket.MessageText, protocol.EncodeView(protocol.OpenEditor{}))
+	_ = c.Write(
+		context.Background(),
+		websocket.MessageText,
+		protocol.EncodeView(protocol.OpenEditor{}),
+	)
 	ed, _ := next[protocol.Editor](t, c)
 
 	ec := s.attach(t, ed.ID)
@@ -310,7 +350,11 @@ func TestOpenEditorOverTheWire(t *testing.T) {
 	}
 	readBinaryUntil(t, ec, "main text")
 
-	_ = c.Write(context.Background(), websocket.MessageText, protocol.EncodeView(protocol.OpenEditor{}))
+	_ = c.Write(
+		context.Background(),
+		websocket.MessageText,
+		protocol.EncodeView(protocol.OpenEditor{}),
+	)
 	if e, _ := next[protocol.Error](t, c); e.Message != host.ErrEditorOpen.Error() {
 		t.Fatalf("second open-editor error = %q", e.Message)
 	}

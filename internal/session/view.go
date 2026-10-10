@@ -27,7 +27,7 @@ type frame struct {
 type View struct {
 	s      *Session
 	conn   Conn
-	ctx    context.Context
+	ctx    context.Context //nolint:containedctx // the writer's lifetime; stop cancels pending writes
 	cancel context.CancelFunc
 	wake   chan struct{}
 

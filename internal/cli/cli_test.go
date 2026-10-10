@@ -22,12 +22,39 @@ func TestParse(t *testing.T) {
 		want Options
 	}{
 		{nil, Options{Scrollback: 50000, Open: true, Argv: []string{"/bin/zsh"}}},
-		{[]string{"--port", "8080", "--font-family", "Fira Code", "--scrollback", "200", "--no-open"},
-			Options{Port: 8080, FontFamily: "Fira Code", Scrollback: 200, Argv: []string{"/bin/zsh"}}},
-		{[]string{"--no-open", "--open"}, Options{Scrollback: 50000, Open: true, Argv: []string{"/bin/zsh"}}},
-		{[]string{"htop", "-d", "10"}, Options{Scrollback: 50000, Open: true, Argv: []string{"htop", "-d", "10"}}},
-		{[]string{"--", "htop", "-d", "10"}, Options{Scrollback: 50000, Open: true, Argv: []string{"htop", "-d", "10"}}},
-		{[]string{"--port=0", "--", "--weird-command"}, Options{Scrollback: 50000, Open: true, Argv: []string{"--weird-command"}}},
+		{
+			[]string{
+				"--port",
+				"8080",
+				"--font-family",
+				"Fira Code",
+				"--scrollback",
+				"200",
+				"--no-open",
+			},
+			Options{
+				Port:       8080,
+				FontFamily: "Fira Code",
+				Scrollback: 200,
+				Argv:       []string{"/bin/zsh"},
+			},
+		},
+		{
+			[]string{"--no-open", "--open"},
+			Options{Scrollback: 50000, Open: true, Argv: []string{"/bin/zsh"}},
+		},
+		{
+			[]string{"htop", "-d", "10"},
+			Options{Scrollback: 50000, Open: true, Argv: []string{"htop", "-d", "10"}},
+		},
+		{
+			[]string{"--", "htop", "-d", "10"},
+			Options{Scrollback: 50000, Open: true, Argv: []string{"htop", "-d", "10"}},
+		},
+		{
+			[]string{"--port=0", "--", "--weird-command"},
+			Options{Scrollback: 50000, Open: true, Argv: []string{"--weird-command"}},
+		},
 	}
 	for _, c := range cases {
 		got, err := Parse(c.args, env("/bin/zsh"))

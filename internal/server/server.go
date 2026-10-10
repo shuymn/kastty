@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/subtle"
 	"errors"
+	"fmt"
 	"io/fs"
 	"mime"
 	"net/http"
@@ -14,7 +15,6 @@ import (
 	"strings"
 
 	"github.com/coder/websocket"
-
 	"github.com/shuymn/kastty/internal/host"
 	"github.com/shuymn/kastty/internal/protocol"
 	"github.com/shuymn/kastty/internal/session"
@@ -24,6 +24,9 @@ import (
 const MaxMessageBytes = 8 << 20
 
 const immutable = "public, max-age=31536000, immutable"
+
+// httpPort is the port browsers leave out of Host and Origin.
+const httpPort = 80
 
 // Server handles every HTTP request for one host.
 type Server struct {
@@ -38,8 +41,7 @@ type Server struct {
 func New(h *host.Host, token string, port int, assets fs.FS) *Server {
 	p := strconv.Itoa(port)
 	hosts := []string{"127.0.0.1:" + p, "localhost:" + p}
-	if port == 80 {
-		// Browsers leave the default port out of Host and Origin.
+	if port == httpPort {
 		hosts = append(hosts, "127.0.0.1", "localhost")
 	}
 	return &Server{host: h, token: []byte(token), hosts: hosts, assets: assets}
@@ -117,7 +119,7 @@ func (s *Server) serveFile(w http.ResponseWriter, r *http.Request, name, cacheCo
 	if r.Method == http.MethodHead {
 		return
 	}
-	_, _ = w.Write(body)
+	_, _ = w.Write(body) //nolint:gosec // G705: body is an embedded build asset, not request data
 }
 
 // authorized checks the subprotocols the view offered: it must speak
@@ -125,7 +127,7 @@ func (s *Server) serveFile(w http.ResponseWriter, r *http.Request, name, cacheCo
 func (s *Server) authorized(r *http.Request) bool {
 	var speaksV1, tokenOK bool
 	for _, header := range r.Header.Values("Sec-WebSocket-Protocol") {
-		for _, p := range strings.Split(header, ",") {
+		for p := range strings.SplitSeq(header, ",") {
 			p = strings.TrimSpace(p)
 			if p == protocol.Subprotocol {
 				speaksV1 = true
@@ -157,12 +159,16 @@ func (s *Server) attach(w http.ResponseWriter, r *http.Request, id string) {
 	if err != nil {
 		return
 	}
-	defer conn.CloseNow()
+	defer func() { _ = conn.CloseNow() }()
 	conn.SetReadLimit(MaxMessageBytes)
 
 	v, err := sess.Attach(wsConn{conn})
 	if errors.Is(err, session.ErrExited) {
-		_ = conn.Write(r.Context(), websocket.MessageText, protocol.EncodeHost(protocol.Exit{Code: sess.ExitCode()}))
+		_ = conn.Write(
+			r.Context(),
+			websocket.MessageText,
+			protocol.EncodeHost(protocol.Exit{Code: sess.ExitCode()}),
+		)
 		_ = conn.Close(websocket.StatusNormalClosure, "")
 		return
 	}
@@ -174,7 +180,12 @@ func (s *Server) attach(w http.ResponseWriter, r *http.Request, id string) {
 	s.readLoop(r.Context(), conn, sess, v)
 }
 
-func (s *Server) readLoop(ctx context.Context, conn *websocket.Conn, sess *session.Session, v *session.View) {
+func (s *Server) readLoop(
+	ctx context.Context,
+	conn *websocket.Conn,
+	sess *session.Session,
+	v *session.View,
+) {
 	for {
 		typ, data, err := conn.Read(ctx)
 		if err != nil {
@@ -210,7 +221,15 @@ func (w wsConn) Write(ctx context.Context, binary bool, data []byte) error {
 	if binary {
 		typ = websocket.MessageBinary
 	}
-	return w.c.Write(ctx, typ, data)
+	if err := w.c.Write(ctx, typ, data); err != nil {
+		return fmt.Errorf("websocket write: %w", err)
+	}
+	return nil
 }
 
-func (w wsConn) Close() error { return w.c.Close(websocket.StatusNormalClosure, "") }
+func (w wsConn) Close() error {
+	if err := w.c.Close(websocket.StatusNormalClosure, ""); err != nil {
+		return fmt.Errorf("websocket close: %w", err)
+	}
+	return nil
+}

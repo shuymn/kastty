@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 )
 
 // Subprotocol is the WebSocket subprotocol the host selects.
@@ -178,6 +179,8 @@ type wireSize struct {
 }
 
 type wireMessage struct {
+	wireSize
+
 	T       *string `json:"t"`
 	Session *struct {
 		ID   *string `json:"id"`
@@ -188,7 +191,6 @@ type wireMessage struct {
 		FontFamily *string          `json:"fontFamily"`
 		Scrollback *json.RawMessage `json:"scrollback"`
 	} `json:"view"`
-	wireSize
 	Title   *string          `json:"title"`
 	ID      *string          `json:"id"`
 	Message *string          `json:"message"`
@@ -213,14 +215,14 @@ func decodeWire(raw []byte) (*wireMessage, error) {
 	return &w, nil
 }
 
-func integer(n *json.RawMessage, field string, min, max int64) (int, error) {
+func integer(n *json.RawMessage, field string, lo, hi int64) (int, error) {
 	if n == nil {
 		return 0, invalid("missing %s", field)
 	}
 	// RawMessage keeps quoted strings, so "80" is rejected instead of coerced.
 	v, err := json.Number(*n).Int64()
-	if err != nil || v < min || v > max {
-		return 0, invalid("%s must be an integer in [%d, %d]", field, min, max)
+	if err != nil || v < lo || v > hi {
+		return 0, invalid("%s must be an integer in [%d, %d]", field, lo, hi)
 	}
 	return int(v), nil
 }
@@ -313,7 +315,7 @@ func DecodeHost(raw []byte) (HostMessage, error) {
 		}
 		return Error{msg}, nil
 	case "exit":
-		code, err := integer(w.Code, "code", -1<<31, 1<<31-1)
+		code, err := integer(w.Code, "code", math.MinInt32, math.MaxInt32)
 		if err != nil {
 			return nil, err
 		}

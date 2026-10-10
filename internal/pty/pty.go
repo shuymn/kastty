@@ -2,6 +2,7 @@
 package pty
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -19,6 +20,15 @@ import (
 // the command it started exits, as before.
 const drainTimeout = 200 * time.Millisecond
 
+// killGrace is how long Kill waits after SIGHUP before sending SIGKILL.
+const killGrace = 2 * time.Second
+
+// signalExitBase follows the shell convention: a command killed by signal n
+// exits with 128 + n.
+const signalExitBase = 128
+
+var errEmptyCommand = errors.New("pty: empty command")
+
 // PTY is a running command attached to a pseudo-terminal.
 type PTY struct {
 	cmd    *exec.Cmd
@@ -34,11 +44,12 @@ type PTY struct {
 // env is the complete environment; TERM is set to xterm-256color.
 func Start(argv []string, env []string, cols, rows int) (*PTY, error) {
 	if len(argv) == 0 {
-		return nil, errors.New("pty: empty command")
+		return nil, errEmptyCommand
 	}
-	cmd := exec.Command(argv[0], argv[1:]...)
+	//nolint:gosec // G204: running the user's command is the point
+	cmd := exec.CommandContext(context.Background(), argv[0], argv[1:]...)
 	cmd.Env = append(append([]string(nil), env...), "TERM=xterm-256color")
-	master, err := pty.StartWithSize(cmd, &pty.Winsize{Cols: uint16(cols), Rows: uint16(rows)})
+	master, err := pty.StartWithSize(cmd, winsize(cols, rows))
 	if err != nil {
 		return nil, fmt.Errorf("start %s: %w", argv[0], err)
 	}
@@ -65,29 +76,23 @@ func pollable(f *os.File) (*os.File, error) {
 	}
 	syscall.ForkLock.RUnlock()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dup master: %w", err)
 	}
 	if err := syscall.SetNonblock(fd, true); err != nil {
 		_ = syscall.Close(fd)
-		return nil, err
+		return nil, fmt.Errorf("set master non-blocking: %w", err)
 	}
 	return os.NewFile(uintptr(fd), f.Name()), nil
 }
 
-func (p *PTY) wait() {
-	_ = p.cmd.Wait()
-	p.exitCode = exitCode(p.cmd.ProcessState)
-	close(p.exited)
-}
-
-// exitCode follows the shell convention: 128 + signal number for a signal. It
-// is 1 when the command could not be waited for.
+// exitCode follows the shell convention: signalExitBase + signal number for a
+// signal. It is 1 when the command could not be waited for.
 func exitCode(state *os.ProcessState) int {
 	if state == nil {
 		return 1
 	}
 	if ws, ok := state.Sys().(syscall.WaitStatus); ok && ws.Signaled() {
-		return 128 + int(ws.Signal())
+		return signalExitBase + int(ws.Signal())
 	}
 	return state.ExitCode()
 }
@@ -95,12 +100,12 @@ func exitCode(state *os.ProcessState) int {
 // Read reads output from the command. After the command exits it keeps
 // returning buffered output for a short time, then returns an error.
 func (p *PTY) Read(b []byte) (int, error) {
-	return p.master.Read(b)
+	return p.master.Read(b) //nolint:wrapcheck // io.Reader: io.EOF passes through as is
 }
 
 // Write sends input to the command.
 func (p *PTY) Write(b []byte) (int, error) {
-	return p.master.Write(b)
+	return p.master.Write(b) //nolint:wrapcheck // io.Writer: errors pass through as is
 }
 
 // Resize changes the terminal size; the command receives SIGWINCH.
@@ -109,14 +114,19 @@ func (p *PTY) Resize(cols, rows int) error {
 	// races with Close. Control fails cleanly once the master is closed.
 	conn, err := p.master.SyscallConn()
 	if err != nil {
-		return err
+		return fmt.Errorf("resize: %w", err)
 	}
-	ws := pty.Winsize{Cols: uint16(cols), Rows: uint16(rows)}
+	ws := winsize(cols, rows)
 	var errno syscall.Errno
 	if err := conn.Control(func(fd uintptr) {
-		_, _, errno = syscall.Syscall(syscall.SYS_IOCTL, fd, syscall.TIOCSWINSZ, uintptr(unsafe.Pointer(&ws)))
+		_, _, errno = syscall.Syscall(
+			syscall.SYS_IOCTL,
+			fd,
+			syscall.TIOCSWINSZ,
+			uintptr(unsafe.Pointer(ws)),
+		)
 	}); err != nil {
-		return err
+		return fmt.Errorf("resize: %w", err)
 	}
 	if errno != 0 {
 		return errno
@@ -149,13 +159,24 @@ func (p *PTY) Kill() {
 	_ = syscall.Kill(-pid, syscall.SIGHUP)
 	select {
 	case <-p.exited:
-	case <-time.After(2 * time.Second):
+	case <-time.After(killGrace):
 		_ = syscall.Kill(-pid, syscall.SIGKILL)
 		<-p.exited
 	}
 	p.close()
 }
 
+func (p *PTY) wait() {
+	_ = p.cmd.Wait()
+	p.exitCode = exitCode(p.cmd.ProcessState)
+	close(p.exited)
+}
+
 func (p *PTY) close() {
 	p.closeOnce.Do(func() { _ = p.master.Close() })
+}
+
+func winsize(cols, rows int) *pty.Winsize {
+	//nolint:gosec // G115: callers pass sizes within protocol.MaxDimension
+	return &pty.Winsize{Cols: uint16(cols), Rows: uint16(rows)}
 }
