@@ -43,7 +43,7 @@ RELEASE_ENV_linux = CC="$(ZIG) cc -target $(ZIG_TARGET)" CXX="$(ZIG) c++ -target
 RELEASE_ENV_darwin = CGO_CFLAGS="-O2 -g -mmacosx-version-min=13.0" \
 	CGO_LDFLAGS="-O2 -g -mmacosx-version-min=13.0"
 
-.PHONY: web libghostty build release-target test lint check
+.PHONY: web libghostty build release-target test fmt lint check
 
 web:
 	bun run build:web
@@ -64,12 +64,15 @@ test:
 	$(CGO_ENV) go test ./...
 	bun test web
 
-# Besides formatting and vet, lint checks that scripts/libghostty-vt.sh and the flake's ghostty
-# input build the ghostty commit go-libghostty pins (GIT_TAG in its CMakeLists.txt): Renovate
-# bumps only the Go module, and the C API differs between commits.
+# Formats the Go code with the formatters .golangci.yaml enables.
+fmt:
+	golangci-lint fmt
+
+# Besides golangci-lint (.golangci.yaml, formatting included) and biome, lint checks that
+# scripts/libghostty-vt.sh and the flake's ghostty input build the ghostty commit go-libghostty
+# pins (GIT_TAG in its CMakeLists.txt): Renovate bumps only the Go module, and the C API differs
+# between commits.
 lint:
-	@out=$$(gofmt -l $$(go list -f '{{.Dir}}' ./...)) && test -z "$$out" || \
-		{ echo "gofmt reports unformatted files:" >&2; echo "$$out" >&2; exit 1; }
 	@go mod download $(LIBGHOSTTY_MODULE) && \
 		pinned=$$(sed -n 's/^ *GIT_TAG *\([0-9a-f]*\).*/\1/p' "$$(go list -m -f '{{.Dir}}' $(LIBGHOSTTY_MODULE))/CMakeLists.txt") && \
 		built=$$(sed -n 's/^GHOSTTY_COMMIT=//p' scripts/libghostty-vt.sh) && \
@@ -79,7 +82,7 @@ lint:
 		flake=$$(sed -n 's|.*"github:ghostty-org/ghostty/\([0-9a-f]*\)".*|\1|p' flake.nix) && \
 		test "$$flake" = "$$built" || \
 		{ echo "flake.nix: the ghostty input is $$flake, but scripts/libghostty-vt.sh builds $$built" >&2; exit 1; }
-	$(CGO_ENV) go vet ./...
+	$(CGO_ENV) golangci-lint run
 	bun run biome check .
 	bun run typecheck
 

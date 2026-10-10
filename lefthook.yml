@@ -26,10 +26,10 @@ pre-commit:
         - "docs/"
       run: bun run biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
       stage_fixed: true
-    gofmt:
+    golangci-lint-fmt:
       tags: [format]
       glob: "**/*.go"
-      run: gofmt -w {staged_files}
+      run: golangci-lint fmt {staged_files}
       stage_fixed: true
     typecheck:
       tags: [types]

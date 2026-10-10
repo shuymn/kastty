@@ -122,6 +122,7 @@ bun install
 | `make libghostty` | Build libghostty-vt for the host platform |
 | `make build` | Build `./kastty` (web view and libghostty-vt included) |
 | `make test` | Run the Go and web tests |
+| `make fmt` | Format the Go code |
 | `make lint` | Lint the Go and web code |
 | `make check` | Run all checks |
 | `make release-target GOOS=linux GOARCH=arm64` | Build a release binary for one target (Linux targets cross-compile with `zig cc`; macOS targets need a macOS host) |

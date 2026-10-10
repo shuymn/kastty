@@ -1,0 +1,79 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    - depguard
+    - cyclop
+    - exhaustruct
+    - exhaustruct_v5
+    - forbidigo
+    - funlen
+    - godot
+    - ireturn
+    - lll
+    - nlreturn
+    - paralleltest
+    - varnamelen
+    - wsl
+    - gocognit
+    - contextcheck
+    - wsl_v5
+    - noinlineerr
+    - gochecknoglobals
+    - goconst
+    # Deprecated; default: all already enables gomodguard_v2.
+    - gomodguard
+    # Tests are white-box: they drive unexported session and view internals.
+    - testpackage
+  settings:
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    mnd:
+      ignored-numbers:
+        - "0o600"
+        - "0o644"
+        - "0o700"
+        - "0o755"
+    tagliatelle:
+      case:
+        rules:
+          # The host/view protocol (ADR 0017) uses camelCase keys.
+          json: camel
+    wrapcheck:
+      ignore-package-globs:
+        - github.com/shuymn/kastty/*
+  exclusions:
+    warn-unused: true
+    presets:
+      - comments
+      - std-error-handling
+      - common-false-positives
+      - legacy
+    rules:
+      - linters:
+          - err113
+          - noctx
+        path: _test\.go
+      # Tests run helper binaries and feed wide (CJK) characters to the terminal.
+      - linters:
+          - gosec
+        path: _test\.go
+        text: G204
+      - linters:
+          - gosmopolitan
+        path: _test\.go
+      # websocket.Dial responses need no closing, and the server tests' get
+      # helper closes its body before returning the response.
+      - linters:
+          - bodyclose
+        path: _test\.go
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+    - golines
+  exclusions:
+    warn-unused: true

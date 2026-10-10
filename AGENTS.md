@@ -15,7 +15,7 @@
 
 ## Frontend and Testing
 
-- Format Go with gofmt and keep `go vet` clean; format and lint TypeScript with biome.
+- Format Go with `make fmt` and keep `make lint` (golangci-lint) clean; format and lint TypeScript with biome.
 - Write web tests with `bun:test`; run Go tests through `make test` so cgo finds libghostty-vt.
 - Reference Bun docs in `node_modules/bun-types/docs/**.mdx` when Bun bundler or test runner behavior is unclear.
 
