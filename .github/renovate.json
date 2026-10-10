@@ -26,6 +26,15 @@
       "depNameTemplate": "ryanoasis/nerd-fonts",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "description": "Update MISE_VERSION, the mise release jdx/mise-action installs",
+      "managerFilePatterns": ["/^\\.github/workflows/[^/]+\\.ya?ml$/"],
+      "matchStrings": ["MISE_VERSION: (?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "jdx/mise",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ],
   "packageRules": [
@@ -36,6 +45,22 @@
       "prBodyNotes": [
         "Set `GHOSTTY_COMMIT` in `scripts/libghostty-vt.sh` to the `GIT_TAG` in go-libghostty's `CMakeLists.txt` at the new version before merging."
       ]
+    },
+    {
+      "description": "Update the Bun pin in mise.toml together with @types/bun, as the shared preset does for .bun-version",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["bun"],
+      "groupName": "bun",
+      "groupSlug": "bun"
+    },
+    {
+      "description": "Zig releases are tagged on Codeberg. Stay on the minor version ghostty's build.zig.zon requires; raise the cap when GHOSTTY_COMMIT moves to a newer Zig",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["zig"],
+      "overrideDatasource": "forgejo-tags",
+      "overridePackageName": "ziglang/zig",
+      "registryUrls": ["https://codeberg.org"],
+      "allowedVersions": "<0.17.0"
     }
   ]
 }

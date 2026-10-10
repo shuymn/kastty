@@ -1,0 +1,8 @@
+# Build tools pinned to exact versions; Renovate updates them. Go is left to go.mod.
+# No mise.lock: the pins are already exact.
+[settings]
+lockfile = false
+
+[tools]
+bun = "1.4.2"
+zig = "0.16.0"
