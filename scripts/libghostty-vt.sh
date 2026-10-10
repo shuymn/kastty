@@ -52,7 +52,10 @@ if [[ ! -f "$lib" ]]; then
   if [[ "$target" != native ]]; then
     args+=("-Dtarget=$target")
   fi
-  (cd "$src" && "$ZIG" "${args[@]}") >&2
+  # ghostty's build takes its version from git. The extracted tarball has no .git, so git would
+  # find kastty's repository above it (or through a GIT_DIR that git hooks inherit), and a kastty
+  # release tag there makes the build panic. A missing GIT_DIR makes git report no repository.
+  (cd "$src" && GIT_DIR="$src/.git" "$ZIG" "${args[@]}") >&2
   rm -rf "$prefix"
   mv "$tmp" "$prefix"
 fi
