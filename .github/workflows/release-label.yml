@@ -1,0 +1,39 @@
+name: Release Label
+
+# tagpr bumps the minor version when a pull request merged since the last release has the `minor`
+# label. This adds it from the Conventional Commits title: a feature, or while kastty is 0.x, a
+# breaking change. A major release stays a manual tagpr:major on the release pull request.
+on:
+  pull_request:
+    types:
+      - opened
+      - edited
+      - reopened
+    branches:
+      - main
+
+permissions: {}
+
+jobs:
+  label:
+    name: Label
+    runs-on: ubuntu-latest
+    # Pull requests from forks get a read-only token; label those by hand.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Label features and breaking changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+
+          pattern='^(feat(\([^)]+\))?!?|[a-z]+(\([^)]+\))?!):'
+          if [[ "$PR_TITLE" =~ $pattern ]]; then
+            gh pr edit "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --add-label minor
+          fi
