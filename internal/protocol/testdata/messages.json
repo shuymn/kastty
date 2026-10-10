@@ -1,0 +1,52 @@
+{
+  "comment": "Shared protocol fixtures (ADR 0017). Read by internal/protocol tests (Go) and web/src/protocol.test.ts (TypeScript). `raw` is the exact text frame; `message` is the decoded value.",
+  "hostToView": {
+    "valid": [
+      {
+        "raw": "{\"t\":\"attached\",\"session\":{\"id\":\"main\",\"kind\":\"main\"},\"size\":{\"cols\":80,\"rows\":24},\"title\":\"zsh\",\"view\":{\"fontFamily\":\"\",\"scrollback\":50000}}",
+        "message": { "t": "attached", "session": { "id": "main", "kind": "main" }, "size": { "cols": 80, "rows": 24 }, "title": "zsh", "view": { "fontFamily": "", "scrollback": 50000 } }
+      },
+      {
+        "raw": "{\"t\":\"attached\",\"session\":{\"id\":\"editor-1\",\"kind\":\"editor\"},\"size\":{\"cols\":120,\"rows\":40},\"title\":\"\",\"view\":{\"fontFamily\":\"UDEV Gothic 35NF\",\"scrollback\":1000}}",
+        "message": { "t": "attached", "session": { "id": "editor-1", "kind": "editor" }, "size": { "cols": 120, "rows": 40 }, "title": "", "view": { "fontFamily": "UDEV Gothic 35NF", "scrollback": 1000 } }
+      },
+      { "raw": "{\"t\":\"snapshot\"}", "message": { "t": "snapshot" } },
+      { "raw": "{\"t\":\"size\",\"cols\":100,\"rows\":30}", "message": { "t": "size", "cols": 100, "rows": 30 } },
+      { "raw": "{\"t\":\"title\",\"title\":\"日本語 title\"}", "message": { "t": "title", "title": "日本語 title" } },
+      { "raw": "{\"t\":\"editor\",\"id\":\"editor-1\"}", "message": { "t": "editor", "id": "editor-1" } },
+      { "raw": "{\"t\":\"error\",\"message\":\"An editor overlay is already open\"}", "message": { "t": "error", "message": "An editor overlay is already open" } },
+      { "raw": "{\"t\":\"exit\",\"code\":130}", "message": { "t": "exit", "code": 130 } }
+    ],
+    "invalid": [
+      "",
+      "not json",
+      "[]",
+      "{}",
+      "{\"t\":\"hello\"}",
+      "{\"t\":\"size\",\"cols\":0,\"rows\":24}",
+      "{\"t\":\"size\",\"cols\":80.5,\"rows\":24}",
+      "{\"t\":\"size\",\"cols\":\"80\",\"rows\":24}",
+      "{\"t\":\"title\"}",
+      "{\"t\":\"exit\",\"code\":\"0\"}",
+      "{\"t\":\"attached\",\"session\":{\"id\":\"main\",\"kind\":\"other\"},\"size\":{\"cols\":80,\"rows\":24},\"title\":\"\",\"view\":{\"fontFamily\":\"\",\"scrollback\":1}}",
+      "{\"t\":\"attached\",\"session\":{\"id\":\"main\",\"kind\":\"main\"},\"title\":\"\",\"view\":{\"fontFamily\":\"\",\"scrollback\":1}}"
+    ]
+  },
+  "viewToHost": {
+    "valid": [
+      { "raw": "{\"t\":\"resize\",\"cols\":80,\"rows\":24}", "message": { "t": "resize", "cols": 80, "rows": 24 } },
+      { "raw": "{\"t\":\"resize\",\"cols\":65535,\"rows\":1}", "message": { "t": "resize", "cols": 65535, "rows": 1 } },
+      { "raw": "{\"t\":\"open-editor\"}", "message": { "t": "open-editor" } }
+    ],
+    "invalid": [
+      "",
+      "{\"t\":\"resize\",\"cols\":0,\"rows\":24}",
+      "{\"t\":\"resize\",\"cols\":65536,\"rows\":24}",
+      "{\"t\":\"resize\",\"cols\":-1,\"rows\":24}",
+      "{\"t\":\"resize\",\"cols\":80}",
+      "{\"t\":\"resize\",\"cols\":80,\"rows\":true}",
+      "{\"t\":\"editor-open\",\"content\":\"x\"}",
+      "{\"t\":\"ping\",\"ts\":1}"
+    ]
+  }
+}
