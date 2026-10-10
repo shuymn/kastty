@@ -31,6 +31,9 @@ spec:
     - name: enhancement
       description: New feature or request
       color: a2eeef
+    - name: minor
+      description: Bumps the minor version at the next release (tagpr)
+      color: fbca04
     - name: tagpr
       color: ededed
     - name: tagpr:major
