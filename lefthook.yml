@@ -26,6 +26,11 @@ pre-commit:
         - "docs/"
       run: bun run biome check --write --no-errors-on-unmatched --files-ignore-unknown=true --colors=off {staged_files}
       stage_fixed: true
+    gofmt:
+      tags: [format]
+      glob: "**/*.go"
+      run: gofmt -w {staged_files}
+      stage_fixed: true
     typecheck:
       tags: [types]
       run: bun run typecheck
@@ -43,4 +48,4 @@ pre-push:
   commands:
     checks:
       tags: [format, lint, types, test]
-      run: bun run check
+      run: make check
