@@ -2,18 +2,20 @@
 
 ## Runtime and Commands
 
-- Use Bun for runtime, package management, scripts, builds, and tests; do not introduce npm/yarn/pnpm workflows.
-- Run project scripts through `bun run <script>` and one-off TypeScript through `bun <file>`.
+- The host is Go (`cmd/kastty`, `internal/`); the browser view is TypeScript under `web/`, bundled by Bun into `web/dist` and embedded by `web/embed.go`.
+- Build, test, and lint through `make`: its targets build libghostty-vt and export the cgo environment (`PKG_CONFIG=scripts/pkg-config`, `LIBGHOSTTY_VT_PREFIX`) that bare `go build` and `go test` lack.
+- libghostty-vt comes from `scripts/libghostty-vt.sh` (Zig 0.16.0, path in `ZIG`); keep its ghostty commit equal to the one go-libghostty pins.
+- Use Bun only for web tooling (`bun install`, `bun run build:web`, `bun test web`, biome); keep npm/yarn/pnpm workflows out.
 
 ## APIs
 
-- Keep HTTP and WebSocket serving on `Bun.serve()` with built-in `WebSocket`; do not add `express` or `ws`.
-- Prefer Bun-native file helpers for static assets and generated files unless Node APIs are required for specific options.
+- `docs/adr/0017-host-owned-terminal-state.md` is the host/view protocol contract; change the Go and TypeScript sides together and extend `internal/protocol/testdata/messages.json`, which both test suites read.
+- Serve HTTP with `net/http`, WebSockets with `coder/websocket`, and PTYs with `creack/pty` (ADR 0018).
 
 ## Frontend and Testing
 
-- Serve the frontend via Bun HTML imports from `Bun.serve()`; do not add `vite` or a separate frontend build pipeline.
-- Write tests with `bun:test` and run them with `bun test`.
-- Reference Bun docs in `node_modules/bun-types/docs/**.mdx` when Bun API behavior is unclear.
+- Format Go with gofmt and keep `go vet` clean; format and lint TypeScript with biome.
+- Write web tests with `bun:test`; run Go tests through `make test` so cgo finds libghostty-vt.
+- Reference Bun docs in `node_modules/bun-types/docs/**.mdx` when Bun bundler or test runner behavior is unclear.
 
 <!-- Maintenance: Keep this file under 30 instruction lines and remove inferable or stale directives. -->

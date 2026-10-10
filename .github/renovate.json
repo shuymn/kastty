@@ -27,5 +27,15 @@
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
     }
+  ],
+  "packageRules": [
+    {
+      "description": "GHOSTTY_COMMIT in scripts/libghostty-vt.sh must follow go-libghostty's pinned ghostty commit; `make lint` fails until they match",
+      "matchManagers": ["gomod"],
+      "matchPackageNames": ["go.mitchellh.com/libghostty"],
+      "prBodyNotes": [
+        "Set `GHOSTTY_COMMIT` in `scripts/libghostty-vt.sh` to the `GIT_TAG` in go-libghostty's `CMakeLists.txt` at the new version before merging."
+      ]
+    }
   ]
 }

@@ -12,6 +12,9 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  ZIG_VERSION: 0.16.0
+
 jobs:
   lint:
     name: Lint
@@ -48,13 +51,32 @@ jobs:
         if: steps.check-branch.outputs.skip != 'true'
         run: bun install --frozen-lockfile
 
+      - name: Setup Go
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      # go vet runs cgo, so lint needs libghostty-vt as well.
+      - name: Restore libghostty-vt
+        id: libghostty-vt
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/libghostty-vt
+          key: libghostty-vt-${{ runner.os }}-${{ runner.arch }}-zig${{ env.ZIG_VERSION }}-${{ hashFiles('scripts/libghostty-vt.sh', 'Makefile') }}
+
+      # Zig is only needed to build libghostty-vt when the cache misses.
+      - name: Setup Zig
+        if: steps.check-branch.outputs.skip != 'true' && steps.libghostty-vt.outputs.cache-hit != 'true'
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+          use-cache: false
+
       - name: Lint
         if: steps.check-branch.outputs.skip != 'true'
-        run: bun run lint
-
-      - name: Typecheck
-        if: steps.check-branch.outputs.skip != 'true'
-        run: bun run typecheck
+        run: make lint
 
   build:
     name: Build
@@ -91,9 +113,40 @@ jobs:
         if: steps.check-branch.outputs.skip != 'true'
         run: bun install --frozen-lockfile
 
+      - name: Setup Go
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Restore libghostty-vt
+        id: libghostty-vt
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/libghostty-vt
+          key: libghostty-vt-${{ runner.os }}-${{ runner.arch }}-zig${{ env.ZIG_VERSION }}-${{ hashFiles('scripts/libghostty-vt.sh', 'Makefile') }}
+
+      - name: Setup Zig
+        if: steps.check-branch.outputs.skip != 'true' && steps.libghostty-vt.outputs.cache-hit != 'true'
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+          use-cache: false
+
       - name: Build
         if: steps.check-branch.outputs.skip != 'true'
-        run: bun run build
+        run: make build COMMIT="$(git rev-parse --short=7 HEAD)"
+
+      - name: Check version output
+        if: steps.check-branch.outputs.skip != 'true'
+        run: |
+          expected="dev+$(git rev-parse --short=7 HEAD)"
+          actual="$(./kastty --version)"
+          if [[ "$actual" != "$expected" ]]; then
+            echo "version mismatch: expected=$expected actual=$actual"
+            exit 1
+          fi
 
   test:
     name: Test (${{ matrix.os }})
@@ -136,6 +189,27 @@ jobs:
         if: steps.check-branch.outputs.skip != 'true'
         run: bun install --frozen-lockfile
 
+      - name: Setup Go
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Restore libghostty-vt
+        id: libghostty-vt
+        if: steps.check-branch.outputs.skip != 'true'
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/libghostty-vt
+          key: libghostty-vt-${{ runner.os }}-${{ runner.arch }}-zig${{ env.ZIG_VERSION }}-${{ hashFiles('scripts/libghostty-vt.sh', 'Makefile') }}
+
+      - name: Setup Zig
+        if: steps.check-branch.outputs.skip != 'true' && steps.libghostty-vt.outputs.cache-hit != 'true'
+        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
+        with:
+          version: ${{ env.ZIG_VERSION }}
+          use-cache: false
+
       - name: Test
         if: steps.check-branch.outputs.skip != 'true'
-        run: bun test
+        run: make test

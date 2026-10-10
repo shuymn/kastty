@@ -8,12 +8,13 @@ The name combines "cast" and "tty", with a nod to 「彁（ka）」— a ghost k
 
 - **Browser-based terminal** -- renders a full terminal in the browser using ghostty-web
 - **Localhost-only** -- binds to `127.0.0.1` with token-based authentication
-- **Replay buffer** -- new connections receive recent terminal history
+- **Server-side terminal state** -- kastty keeps the screen, scrollback, and terminal modes itself, so a reload, a reconnect, or an extra tab restores the exact screen
+- **Multiple tabs** -- open the session in several tabs at once; the terminal size follows the tab you last typed in
 - **Editor overlay** -- open the current terminal buffer in your `$EDITOR` inside an in-browser overlay (`Ctrl+Shift+E`)
 - **Bundled fonts** -- ships with [M PLUS 1 Code](https://fonts.google.com/specimen/M+PLUS+1+Code) and [Nerd Fonts Symbols](https://www.nerdfonts.com/) for consistent CJK and icon rendering across environments
 - **Font customization** -- configurable terminal font family
 - **Tab title sync** -- browser tab title follows terminal OSC title updates, with state emoji
-- **Single dependency runtime** -- runs entirely on [Bun](https://bun.sh)
+- **Single binary** -- one self-contained executable with the web UI embedded
 
 ## Install
 
@@ -32,7 +33,9 @@ brew install shuymn/tap/kastty
 kastty [options] [-- command [args...]]
 ```
 
-When no command is specified, kastty launches your default shell (`$SHELL`).
+When no command is specified, kastty launches your default shell (`$SHELL`, or `/bin/sh` if it is unset).
+
+kastty prints a URL such as `http://127.0.0.1:54321/#<token>` and opens it in your browser. The token sits in the URL fragment, so it stays out of request URLs, server logs, and `Referer` headers; the page presents it only in the WebSocket handshake. The page keeps the token for that tab and removes it from the address bar, so open additional tabs with the printed URL.
 
 ### Options
 
@@ -40,12 +43,12 @@ When no command is specified, kastty launches your default shell (`$SHELL`).
 |---|---|---|
 | `--port <n>` | `0` (auto) | Port to listen on |
 | `--font-family <name>` | - | Terminal font family |
-| `--scrollback <lines>` | `50000` | Requested terminal scrollback lines in browser (approximate) |
-| `--replay-buffer-bytes <n>` | auto (from `--scrollback`) | Replay buffer size for reconnect restore |
+| `--scrollback <lines>` | `50000` | Scrollback lines kastty keeps for each terminal |
 | `--open` / `--no-open` | `true` | Auto-open browser |
 | `-h, --help` | - | Show CLI help |
+| `--version` | - | Show the version |
 
-`--scrollback` is applied as an internal capacity limit in ghostty-web, so the visible line count varies by output width and escape sequences.
+kastty allocates scrollback in pages, so it may keep slightly more lines than `--scrollback` requests. The browser view sizes its own scrollback from the same value.
 
 ### Examples
 
@@ -59,8 +62,8 @@ kastty --font-family "Fira Code" -- htop
 # Pass flags to the target command
 kastty -- htop -d 10
 
-# Increase local scrollback and reconnect replay history
-kastty --scrollback 200000 --replay-buffer-bytes 33554432
+# Keep more scrollback history
+kastty --scrollback 200000
 
 # Start without opening the browser
 kastty --no-open
@@ -68,7 +71,7 @@ kastty --no-open
 
 ## Editor overlay
 
-Press **`Ctrl+Shift+E`** to open the current terminal buffer in your editor. kastty snapshots the visible buffer and scrollback, writes it to a temporary file, and runs your editor in a dedicated PTY rendered as an overlay above the terminal. The main session keeps running untouched underneath.
+Press **`Ctrl+Shift+E`** to open the current terminal buffer in your editor. kastty takes the main screen and scrollback from the terminal state it keeps, writes them to a temporary file, and runs your editor in a dedicated PTY rendered as an overlay above the terminal. The main session keeps running untouched underneath.
 
 - The editor command is taken from **`$VISUAL`**, falling back to **`$EDITOR`**. Arguments are honored, e.g. `EDITOR="nvim -R"`. If neither is set, kastty shows an error and does not open the overlay.
 - While the overlay is focused, keystrokes go to the editor, not the main terminal.
@@ -87,7 +90,11 @@ EDITOR=nvim kastty
 
 ### Requirements
 
-- [Bun](https://bun.sh)
+- [Go](https://go.dev) (the version in `go.mod`) -- the host
+- [Bun](https://bun.sh) (the version in `.bun-version`) -- builds, lints, and tests the web view
+- [Zig](https://ziglang.org) 0.16.0 -- builds libghostty-vt
+
+kastty is a Go host that runs the PTY and keeps the terminal state with [libghostty-vt](https://github.com/ghostty-org/ghostty), plus a TypeScript web view built with Bun and embedded into the binary. The host/view protocol is specified in [ADR 0017](docs/adr/0017-host-owned-terminal-state.md).
 
 ### Setup
 
@@ -95,33 +102,34 @@ EDITOR=nvim kastty
 bun install
 ```
 
-### Build
+### Make targets
 
-Build a single executable:
+| Target | Description |
+|---|---|
+| `make web` | Build the web view into `web/dist` |
+| `make libghostty` | Build libghostty-vt for the host platform |
+| `make build` | Build `./kastty` (web view and libghostty-vt included) |
+| `make test` | Run the Go and web tests |
+| `make lint` | Lint the Go and web code |
+| `make check` | Run all checks |
+| `make release-target GOOS=linux GOARCH=arm64` | Build a release binary for one target (Linux targets cross-compile with `zig cc`; macOS targets need a macOS host) |
+
+### libghostty-vt
+
+The host links libghostty-vt statically through cgo ([go-libghostty](https://pkg.go.dev/go.mitchellh.com/libghostty)). `scripts/libghostty-vt.sh [zig-target]` downloads the Ghostty commit that go-libghostty pins, builds the static library with Zig, caches it under `.cache/`, and prints its install prefix. The first build takes a while; later builds reuse the cache.
+
+The make targets wire this up for you. Set `ZIG` when Zig 0.16.0 is not the `zig` on your `PATH`:
 
 ```bash
-bun run build
+ZIG=/path/to/zig-0.16.0/zig make build
 ```
 
-This produces a `kastty` binary in the project root.
-
-### Development
+To run `go` commands directly, point cgo at the library through the bundled `pkg-config` stand-in:
 
 ```bash
-# Lint
-bun run lint
-
-# Format
-bun run fmt
-
-# Type check
-bun run typecheck
-
-# Run tests
-bun test
-
-# All checks
-bun run check
+export PKG_CONFIG="$PWD/scripts/pkg-config"
+export LIBGHOSTTY_VT_PREFIX="$(scripts/libghostty-vt.sh)"
+go test ./...
 ```
 
 ## License

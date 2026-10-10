@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [0018](0018-go-host-and-typescript-view.md)（CLI 引数は Go で解析する）
 
 ## Context
 

@@ -33,3 +33,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 # Finder (MacOS) folder config
 .DS_Store
+
+# Built web view (embedded by web/embed.go). Re-include the directory the `dist` rule hides,
+# so web/dist/.gitkeep keeps it present for go:embed in a fresh checkout.
+!/web/dist/
+/web/dist/*
+!/web/dist/.gitkeep

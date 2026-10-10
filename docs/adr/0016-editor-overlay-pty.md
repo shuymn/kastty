@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (`/editor-ws` と本文アップロードの部分は [0017](0017-host-owned-terminal-state.md) により Superseded。エディタの起動規則は有効)
 
 ## Context
 

@@ -1,0 +1,6 @@
+github.com/coder/websocket v1.8.15 h1:6B2JPeOGlpff2Uz6vOEH1Vzpi0iUz20A+lPVhPHtNUA=
+github.com/coder/websocket v1.8.15/go.mod h1:NX3SzP+inril6yawo5CQXx8+fk145lPDC6pumgx0mVg=
+github.com/creack/pty v1.1.24 h1:bJrF4RRfyJnbTJqzRLHzcGaZK1NeM5kTC9jGgovnR1s=
+github.com/creack/pty v1.1.24/go.mod h1:08sCNb52WyoAwi2QDyzUCTgcvVFhUzewun7wtTfvcwE=
+go.mitchellh.com/libghostty v0.0.0-20261007030428-8812ad0e0f79 h1:zpRj42oTcn+DbQOgtdWvQ2LLYr9VPv87mNk2Xn9KkTU=
+go.mitchellh.com/libghostty v0.0.0-20261007030428-8812ad0e0f79/go.mod h1:sx8yDvnDrQC/PzsrFfYx7ROmH8my91nz7lOxQb6sbo0=

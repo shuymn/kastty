@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (配信アーキテクチャと M PLUS 1 Code のアセットマップ生成の部分は [0018](0018-go-host-and-typescript-view.md) により Superseded。フォントの選定は有効)
 
 ## Context
 

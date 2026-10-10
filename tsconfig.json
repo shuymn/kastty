@@ -1,4 +1,7 @@
 {
   "extends": "@tsconfig/bun/tsconfig.json",
-  "exclude": ["src/web", "node_modules"]
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM"]
+  },
+  "include": ["web/**/*.ts"]
 }

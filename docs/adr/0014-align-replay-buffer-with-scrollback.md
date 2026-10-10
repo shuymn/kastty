@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [0017](0017-host-owned-terminal-state.md)
 
 ## Context
 

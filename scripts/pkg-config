@@ -1,0 +1,11 @@
+#!/bin/sh
+# Stand-in for the `pkg-config --static libghostty-vt-static` call in go-libghostty's
+# cgo directives, so builds need no system pkg-config. Point PKG_CONFIG at this file
+# and LIBGHOSTTY_VT_PREFIX at the prefix printed by scripts/libghostty-vt.sh.
+: "${LIBGHOSTTY_VT_PREFIX:?set LIBGHOSTTY_VT_PREFIX to the output of scripts/libghostty-vt.sh}"
+for arg in "$@"; do
+  case "$arg" in
+    --cflags) echo "-I$LIBGHOSTTY_VT_PREFIX/include -DGHOSTTY_STATIC" ;;
+    --libs) echo "$LIBGHOSTTY_VT_PREFIX/lib/libghostty-vt.a" ;;
+  esac
+done

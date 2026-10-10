@@ -25,3 +25,6 @@ trim_trailing_whitespace = false
 
 [*.sh]
 indent_size = 2
+
+[{Makefile,*.go}]
+indent_style = tab
