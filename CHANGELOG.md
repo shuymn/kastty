@@ -1,5 +1,9 @@
 # Changelog
 
+## [v0.4.1](https://github.com/shuymn/kastty/compare/v0.4.0...v0.4.1) - 2026-10-10
+
+- ci: label feature PRs for tagpr's minor bump by @shuymn in https://github.com/shuymn/kastty/pull/149
+
 ## [v0.4.0](https://github.com/shuymn/kastty/compare/v0.3.0...v0.4.0) - 2026-10-10
 
 - chore(infra): declare repo settings for gh-infra by @shuymn in https://github.com/shuymn/kastty/pull/144
