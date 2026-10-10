@@ -8,6 +8,10 @@ on:
 permissions:
   contents: write
 
+env:
+  # The mise release jdx/mise-action installs; Renovate updates it.
+  MISE_VERSION: 2026.10.3
+
 jobs:
   release:
     runs-on: macos-latest
@@ -24,6 +28,7 @@ jobs:
       - name: Setup mise
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
+          version: ${{ env.MISE_VERSION }}
           cache: false
 
       - name: Install dependencies
