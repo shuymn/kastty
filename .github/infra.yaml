@@ -1,0 +1,118 @@
+apiVersion: gh-infra/v1
+kind: Repository
+metadata:
+  name: kastty
+  owner: shuymn
+reconcile:
+  labels: authoritative
+  rulesets: authoritative
+spec:
+  description: Share a terminal in the browser. A Go host keeps the terminal state with libghostty-vt, and ghostty-web renders it.
+  visibility: public
+  archived: false
+  topics:
+    - cli
+    - ghostty
+    - go
+    - pty
+    - terminal
+    - terminal-emulator
+    - terminal-sharing
+    - websocket
+  labels:
+    - name: bug
+      description: Something isn't working
+      color: d73a4a
+    - name: dependencies
+      color: ededed
+    - name: documentation
+      description: Improvements or additions to documentation
+      color: 0075ca
+    - name: enhancement
+      description: New feature or request
+      color: a2eeef
+    - name: tagpr
+      color: ededed
+    - name: tagpr:major
+      description: Next release is a major version bump
+      color: b60205
+    - name: tagpr:minor
+      description: Next release is a minor version bump
+      color: fbca04
+  features:
+    issues: true
+    projects: false
+    wiki: false
+    discussions: false
+    pull_requests: true
+  merge_strategy:
+    allow_merge_commit: true
+    allow_squash_merge: false
+    allow_rebase_merge: false
+    allow_auto_merge: true
+    auto_delete_head_branches: true
+    squash_merge_commit_title: COMMIT_OR_PR_TITLE
+    squash_merge_commit_message: COMMIT_MESSAGES
+    merge_commit_title: MERGE_MESSAGE
+    merge_commit_message: PR_TITLE
+  release_immutability: true
+  security:
+    vulnerability_alerts: false
+    automated_security_fixes: false
+    private_vulnerability_reporting: false
+  rulesets:
+    - name: Default Branch Protection
+      target: branch
+      enforcement: active
+      bypass_actors:
+        - role: admin
+          bypass_mode: always
+      conditions:
+        ref_name:
+          include:
+            - ~DEFAULT_BRANCH
+      rules:
+        pull_request:
+          required_approving_review_count: 0
+          dismiss_stale_reviews_on_push: false
+          require_code_owner_review: false
+          require_last_push_approval: false
+          required_review_thread_resolution: false
+        required_status_checks:
+          strict_required_status_checks_policy: false
+          contexts:
+            - context: Test (macos-latest)
+              app: github-actions
+            - context: Test (ubuntu-latest)
+              app: github-actions
+            - context: Lint
+              app: github-actions
+            - context: Build
+              app: github-actions
+        non_fast_forward: true
+        update: false
+        deletion: true
+        creation: false
+        required_linear_history: false
+        required_signatures: false
+  variables:
+    - name: APP_ID
+      value: "2935530"
+  actions:
+    enabled: true
+    allowed_actions: selected
+    sha_pinning_required: true
+    workflow_permissions: read
+    can_approve_pull_requests: false
+    selected_actions:
+      github_owned_allowed: true
+      verified_allowed: false
+      patterns_allowed:
+        - astral-sh/setup-uv@*
+        - cachix/cachix-action@*
+        - cachix/install-nix-action@*
+        - jdx/mise-action@*
+        - mlugg/setup-zig@*
+        - oven-sh/setup-bun@*
+        - Songmu/tagpr@*
+    fork_pr_approval: first_time_contributors
