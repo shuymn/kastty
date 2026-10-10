@@ -89,6 +89,10 @@ spec:
               app: github-actions
             - context: Build
               app: github-actions
+            - context: Nix (macos-latest)
+              app: github-actions
+            - context: Nix (ubuntu-latest)
+              app: github-actions
         non_fast_forward: true
         update: false
         deletion: true
@@ -112,7 +116,6 @@ spec:
         - cachix/cachix-action@*
         - cachix/install-nix-action@*
         - jdx/mise-action@*
-        - mlugg/setup-zig@*
         - oven-sh/setup-bun@*
         - Songmu/tagpr@*
     fork_pr_approval: first_time_contributors
