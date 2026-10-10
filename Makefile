@@ -4,7 +4,7 @@
 #   make build                                  # host binary ./kastty
 #   make release-target GOOS=linux GOARCH=arm64 # cross-compiled binary for a release archive
 #
-# Set ZIG to Zig 0.16.0 when `zig` on PATH is another version.
+# Set ZIG to the Zig pinned in mise.toml when `zig` on PATH is another version.
 
 VERSION ?= dev
 COMMIT ?=

@@ -91,14 +91,17 @@ EDITOR=nvim kastty
 ### Requirements
 
 - [Go](https://go.dev) (the version in `go.mod`) -- the host
-- [Bun](https://bun.sh) (the version in `.bun-version`) -- builds, lints, and tests the web view
-- [Zig](https://ziglang.org) 0.16.0 -- builds libghostty-vt
+- [Bun](https://bun.sh) -- builds, lints, and tests the web view
+- [Zig](https://ziglang.org) -- builds libghostty-vt
+
+Bun and Zig are pinned in `mise.toml`; with [mise](https://mise.jdx.dev), `mise install` installs both.
 
 kastty is a Go host that runs the PTY and keeps the terminal state with [libghostty-vt](https://github.com/ghostty-org/ghostty), plus a TypeScript web view built with Bun and embedded into the binary. The host/view protocol is specified in [ADR 0017](docs/adr/0017-host-owned-terminal-state.md).
 
 ### Setup
 
 ```bash
+mise install
 bun install
 ```
 
@@ -118,10 +121,10 @@ bun install
 
 The host links libghostty-vt statically through cgo ([go-libghostty](https://pkg.go.dev/go.mitchellh.com/libghostty)). `scripts/libghostty-vt.sh [zig-target]` downloads the Ghostty commit that go-libghostty pins, builds the static library with Zig, caches it under `.cache/`, and prints its install prefix. The first build takes a while; later builds reuse the cache.
 
-The make targets wire this up for you. Set `ZIG` when Zig 0.16.0 is not the `zig` on your `PATH`:
+The make targets wire this up for you. Set `ZIG` when the `zig` on your `PATH` is not the version in `mise.toml`:
 
 ```bash
-ZIG=/path/to/zig-0.16.0/zig make build
+ZIG=/path/to/zig make build
 ```
 
 To run `go` commands directly, point cgo at the library through the bundled `pkg-config` stand-in:

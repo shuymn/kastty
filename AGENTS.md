@@ -4,7 +4,7 @@
 
 - The host is Go (`cmd/kastty`, `internal/`); the browser view is TypeScript under `web/`, bundled by Bun into `web/dist` and embedded by `web/embed.go`.
 - Build, test, and lint through `make`: its targets build libghostty-vt and export the cgo environment (`PKG_CONFIG=scripts/pkg-config`, `LIBGHOSTTY_VT_PREFIX`) that bare `go build` and `go test` lack.
-- libghostty-vt comes from `scripts/libghostty-vt.sh` (Zig 0.16.0, path in `ZIG`); keep its ghostty commit equal to the one go-libghostty pins.
+- libghostty-vt comes from `scripts/libghostty-vt.sh` (the Zig pinned in `mise.toml`, path in `ZIG`); keep its ghostty commit equal to the one go-libghostty pins.
 - Use Bun only for web tooling (`bun install`, `bun run build:web`, `bun test web`, biome); keep npm/yarn/pnpm workflows out.
 
 ## APIs

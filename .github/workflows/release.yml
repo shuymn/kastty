@@ -20,26 +20,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+      # No caches: release binaries are built from the tagged sources.
+      - name: Setup mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
-          bun-version-file: ".bun-version"
+          cache: false
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # No Go or Zig caches: release binaries are built from the tagged sources.
       - name: Setup Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: false
-
-      - name: Setup Zig
-        uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2.2.1
-        with:
-          version: 0.16.0
-          use-cache: false
 
       - id: determine_release_tag
         name: Ensure draft release exists
