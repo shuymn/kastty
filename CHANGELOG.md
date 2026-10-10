@@ -1,5 +1,16 @@
 # Changelog
 
+## [v0.4.0](https://github.com/shuymn/kastty/compare/v0.3.0...v0.4.0) - 2026-10-10
+
+- chore(infra): declare repo settings for gh-infra by @shuymn in https://github.com/shuymn/kastty/pull/144
+- build: pin Bun and Zig with mise by @shuymn in https://github.com/shuymn/kastty/pull/145
+- feat(nix): package kastty as a flake by @shuymn in https://github.com/shuymn/kastty/pull/146
+- chore(deps): update astral-sh/setup-uv action to v10 by @renovate[bot] in https://github.com/shuymn/kastty/pull/114
+- chore(deps): update dependency fonttools to v4.66.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/135
+- chore(infra): require the Nix checks by @shuymn in https://github.com/shuymn/kastty/pull/148
+- chore(deps): update actions/checkout action to v7 by @renovate[bot] in https://github.com/shuymn/kastty/pull/93
+- chore(deps): update dependency typescript to v7 by @renovate[bot] in https://github.com/shuymn/kastty/pull/103
+
 ## [v0.3.0](https://github.com/shuymn/kastty/compare/v0.2.1...v0.3.0) - 2026-10-10
 
 - docs(agents): condense instruction lines by @shuymn in https://github.com/shuymn/kastty/pull/79
