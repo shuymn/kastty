@@ -42,7 +42,7 @@ func (c *fakeConn) Write(ctx context.Context, binary bool, data []byte) error {
 		select {
 		case <-gate:
 		case <-ctx.Done():
-			return ctx.Err()
+			return fmt.Errorf("write: %w", ctx.Err())
 		}
 	}
 	c.mu.Lock()
@@ -73,7 +73,11 @@ func (c *fakeConn) snapshot() ([]recorded, bool) {
 }
 
 // waitFor polls the received frames until cond holds.
-func (c *fakeConn) waitFor(t *testing.T, what string, cond func(frames []recorded, closed bool) bool) []recorded {
+func (c *fakeConn) waitFor(
+	t *testing.T,
+	what string,
+	cond func(frames []recorded, closed bool) bool,
+) []recorded {
 	t.Helper()
 	deadline := time.After(10 * time.Second)
 	for {
@@ -85,7 +89,12 @@ func (c *fakeConn) waitFor(t *testing.T, what string, cond func(frames []recorde
 		case <-c.notify:
 		case <-time.After(20 * time.Millisecond):
 		case <-deadline:
-			t.Fatalf("timed out waiting for %s; got %d frames, closed=%v", what, len(frames), closed)
+			t.Fatalf(
+				"timed out waiting for %s; got %d frames, closed=%v",
+				what,
+				len(frames),
+				closed,
+			)
 		}
 	}
 }
@@ -217,9 +226,16 @@ func TestAttachSendsHandshakeAndSnapshotBeforeLiveOutput(t *testing.T) {
 		t.Fatalf("attached = %+v, want %+v", attached, want)
 	}
 	if !frames[1].binary || !strings.Contains(string(frames[1].data), "before") {
-		t.Fatalf("second frame should be the snapshot containing earlier output, got %q", frames[1].data)
+		t.Fatalf(
+			"second frame should be the snapshot containing earlier output, got %q",
+			frames[1].data,
+		)
 	}
-	if got := screen(t, frames); !strings.Contains(got, "before") || !strings.Contains(got, "after") {
+	if got := screen(
+		t,
+		frames,
+	); !strings.Contains(got, "before") ||
+		!strings.Contains(got, "after") {
 		t.Fatalf("viewer screen = %q", got)
 	}
 }
@@ -227,7 +243,10 @@ func TestAttachSendsHandshakeAndSnapshotBeforeLiveOutput(t *testing.T) {
 func TestQueryIsAnsweredOnceWhateverTheNumberOfViews(t *testing.T) {
 	// The program asks for the cursor position, then reports how many bytes of
 	// reply it received.
-	s := start(t, `stty raw -echo; read _; printf '\033[6n'; sleep 1; n=$(dd bs=256 count=1 2>/dev/null | wc -c); printf '\r\nreply-bytes=%d\r\n' $n; sleep 30`)
+	s := start(
+		t,
+		`stty raw -echo; read _; printf '\033[6n'; sleep 1; n=$(dd bs=256 count=1 2>/dev/null | wc -c); printf '\r\nreply-bytes=%d\r\n' $n; sleep 30`,
+	)
 	v1, c1 := attach(t, s)
 	_, _ = attach(t, s)
 	_, _ = attach(t, s)
@@ -258,14 +277,20 @@ func TestDriverIsTheViewThatTypedLast(t *testing.T) {
 	}
 	for _, c := range []*fakeConn{ca, cb} {
 		c.waitFor(t, "size broadcast", func(f []recorded, _ bool) bool {
-			return slices.Contains(controls(f), protocol.HostMessage(protocol.Resized{Size: protocol.Size{Cols: 90, Rows: 20}}))
+			return slices.Contains(
+				controls(f),
+				protocol.HostMessage(protocol.Resized{Size: protocol.Size{Cols: 90, Rows: 20}}),
+			)
 		})
 	}
 }
 
 func TestSlowViewIsResyncedWithASnapshotAndOthersKeepStreaming(t *testing.T) {
-	s := start(t, `read _; i=0; while [ $i -lt 3000 ]; do printf 'line %d xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n' $i; i=$((i+1)); done; printf 'END\n'; sleep 30`,
-		func(o *Options) { o.HighWater = 4 << 10 })
+	s := start(
+		t,
+		`read _; i=0; while [ $i -lt 3000 ]; do printf 'line %d xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n' $i; i=$((i+1)); done; printf 'END\n'; sleep 30`,
+		func(o *Options) { o.HighWater = 4 << 10 },
+	)
 	fast, cf := attach(t, s)
 	_, slow := attach(t, s)
 	cf.waitFor(t, "fast snapshot", func(f []recorded, _ bool) bool { return len(f) >= 2 })
@@ -280,12 +305,12 @@ func TestSlowViewIsResyncedWithASnapshotAndOthersKeepStreaming(t *testing.T) {
 	fastFrames := cf.waitFor(t, "fast view output", hasText("END"))
 	close(gate)
 
-	slowFrames := slow.waitFor(t, "slow view resync", func(f []recorded, _ bool) bool {
+	slow.waitFor(t, "slow view resync", func(f []recorded, _ bool) bool {
 		return slices.Contains(controls(f), protocol.HostMessage(protocol.Snapshot{}))
 	})
 	// Let anything queued after the resync drain, then compare what both see.
 	time.Sleep(300 * time.Millisecond)
-	slowFrames, _ = slow.snapshot()
+	slowFrames, _ := slow.snapshot()
 	if a, b := screen(t, fastFrames), screen(t, slowFrames); a != b {
 		t.Fatalf("slow view diverged after resync\nfast tail %q\nslow tail %q", tail(a), tail(b))
 	}
@@ -367,7 +392,10 @@ func TestQueryRepliesDoNotStallOutputWhileAPasteIsBlocked(t *testing.T) {
 }
 
 func TestInBandSizeReportsReachTheCommand(t *testing.T) {
-	s := start(t, `stty raw -echo; printf '\033[?2048hREADY\r\n'; r=$(dd bs=1 count=20 2>/dev/null); printf 'GOT %s END\r\n' "${r#?}"; sleep 30`)
+	s := start(
+		t,
+		`stty raw -echo; printf '\033[?2048hREADY\r\n'; r=$(dd bs=1 count=20 2>/dev/null); printf 'GOT %s END\r\n' "${r#?}"; sleep 30`,
+	)
 	v, conn := attach(t, s)
 	conn.waitFor(t, "mode 2048", hasText("READY"))
 	s.Resize(v, protocol.Size{Cols: 100, Rows: 30})
@@ -375,8 +403,11 @@ func TestInBandSizeReportsReachTheCommand(t *testing.T) {
 }
 
 func TestLaggingViewGetsTheFinalScreenWhenTheCommandExits(t *testing.T) {
-	s := start(t, `read _; i=0; while [ $i -lt 3000 ]; do printf 'line %d xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n' $i; i=$((i+1)); done; printf 'FINAL\n'; exit 5`,
-		func(o *Options) { o.HighWater = 4 << 10 })
+	s := start(
+		t,
+		`read _; i=0; while [ $i -lt 3000 ]; do printf 'line %d xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n' $i; i=$((i+1)); done; printf 'FINAL\n'; exit 5`,
+		func(o *Options) { o.HighWater = 4 << 10 },
+	)
 	fast, cf := attach(t, s)
 	_, slow := attach(t, s)
 	cf.waitFor(t, "fast snapshot", func(f []recorded, _ bool) bool { return len(f) >= 2 })
@@ -391,7 +422,11 @@ func TestLaggingViewGetsTheFinalScreenWhenTheCommandExits(t *testing.T) {
 	cf.waitFor(t, "fast view exit", func(_ []recorded, closed bool) bool { return closed })
 	close(gate)
 
-	frames := slow.waitFor(t, "slow view exit", func(_ []recorded, closed bool) bool { return closed })
+	frames := slow.waitFor(
+		t,
+		"slow view exit",
+		func(_ []recorded, closed bool) bool { return closed },
+	)
 	msgs := controls(frames)
 	if last := msgs[len(msgs)-1]; last != (protocol.Exit{Code: 5}) {
 		t.Fatalf("last control = %+v, want exit 5", last)
@@ -399,7 +434,11 @@ func TestLaggingViewGetsTheFinalScreenWhenTheCommandExits(t *testing.T) {
 	if !slices.Contains(msgs, protocol.HostMessage(protocol.Snapshot{})) {
 		t.Fatalf("the lagging view was not resynced before exit: %+v", msgs)
 	}
-	if text := screen(t, frames); !strings.Contains(text, "line 2999") || !strings.Contains(text, "FINAL") {
+	if text := screen(
+		t,
+		frames,
+	); !strings.Contains(text, "line 2999") ||
+		!strings.Contains(text, "FINAL") {
 		t.Fatalf("the lagging view misses the final output; tail %q", tail(text))
 	}
 }

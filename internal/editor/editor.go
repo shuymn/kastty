@@ -9,8 +9,8 @@ import (
 )
 
 // Resolve returns the editor command from $VISUAL, then $EDITOR. The value may
-// carry arguments (e.g. "nvim -R"). ok is false when neither is set.
-func Resolve(getenv func(string) string) (command string, ok bool) {
+// carry arguments (e.g. "nvim -R"). It reports false when neither is set.
+func Resolve(getenv func(string) string) (string, bool) {
 	for _, name := range []string{"VISUAL", "EDITOR"} {
 		if v := strings.TrimSpace(getenv(name)); v != "" {
 			return v, true

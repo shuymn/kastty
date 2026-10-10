@@ -22,6 +22,9 @@ const DefaultHighWater = 4 << 20
 // not grow the queue forever.
 const maxPendingWrites = 256
 
+// readBufferSize is the most PTY output read at once.
+const readBufferSize = 64 << 10
+
 // ErrExited is returned when attaching to a session whose command has exited.
 var ErrExited = errors.New("session has exited")
 
@@ -140,80 +143,6 @@ func (s *Session) PlainText() (string, error) {
 		return "", ErrExited
 	}
 	return s.vt.PlainText()
-}
-
-func (s *Session) readLoop() {
-	readDone := make(chan struct{})
-	go s.pty.CloseAfterDrain(readDone)
-	buf := make([]byte, 64<<10)
-	for {
-		n, err := s.pty.Read(buf)
-		if n > 0 {
-			s.output(buf[:n])
-		}
-		if err != nil {
-			break
-		}
-	}
-	close(readDone)
-	s.finish(s.pty.ExitCode())
-}
-
-func (s *Session) output(p []byte) {
-	s.mu.Lock()
-	replies, titleChanged := s.vt.Write(p)
-	data := append([]byte(nil), p...)
-	for v := range s.views {
-		v.enqueue(frame{binary: true, data: data, droppable: true})
-	}
-	if titleChanged {
-		s.title = s.vt.Title()
-		msg := protocol.EncodeHost(protocol.Title{Title: s.title})
-		for v := range s.views {
-			v.enqueue(frame{data: msg, droppable: true})
-		}
-	}
-	s.mu.Unlock()
-	s.reply(replies)
-}
-
-// reply queues VT replies for the PTY without waiting: the caller may be
-// readLoop, or hold s.mu.
-func (s *Session) reply(replies []byte) {
-	if len(replies) == 0 {
-		return
-	}
-	select {
-	case s.input <- ptyWrite{data: replies}:
-	default: // the command has stopped reading its input
-	}
-}
-
-func (s *Session) finish(code int) {
-	s.mu.Lock()
-	s.exited = true
-	s.exitCode = code
-	msg := protocol.EncodeHost(protocol.Exit{Code: code})
-	var final []byte // the last screen, for views that fell behind
-	for v := range s.views {
-		if v.isLagging() {
-			if final == nil {
-				snapshot, err := s.vt.Snapshot()
-				if err != nil {
-					go v.fail()
-					continue
-				}
-				final = snapshot
-			}
-			v.resume(s.resyncFrames(final)...)
-		}
-		v.enqueue(frame{data: msg})
-		v.closeAfterFlush()
-	}
-	s.vt.Close()
-	s.vt = nil
-	s.mu.Unlock()
-	close(s.done)
 }
 
 // Attach registers a view. The view first receives an attached message and a
@@ -336,6 +265,85 @@ func (s *Session) Resize(v *View, size protocol.Size) {
 	}
 }
 
+// Send queues a control message for one view (editor ids, errors).
+func (s *Session) Send(v *View, m protocol.HostMessage) {
+	v.enqueue(frame{data: protocol.EncodeHost(m)})
+}
+
+func (s *Session) readLoop() {
+	readDone := make(chan struct{})
+	go s.pty.CloseAfterDrain(readDone)
+	buf := make([]byte, readBufferSize)
+	for {
+		n, err := s.pty.Read(buf)
+		if n > 0 {
+			s.output(buf[:n])
+		}
+		if err != nil {
+			break
+		}
+	}
+	close(readDone)
+	s.finish(s.pty.ExitCode())
+}
+
+func (s *Session) output(p []byte) {
+	s.mu.Lock()
+	replies, titleChanged := s.vt.Write(p)
+	data := append([]byte(nil), p...)
+	for v := range s.views {
+		v.enqueue(frame{binary: true, data: data, droppable: true})
+	}
+	if titleChanged {
+		s.title = s.vt.Title()
+		msg := protocol.EncodeHost(protocol.Title{Title: s.title})
+		for v := range s.views {
+			v.enqueue(frame{data: msg, droppable: true})
+		}
+	}
+	s.mu.Unlock()
+	s.reply(replies)
+}
+
+// reply queues VT replies for the PTY without waiting: the caller may be
+// readLoop, or hold s.mu.
+func (s *Session) reply(replies []byte) {
+	if len(replies) == 0 {
+		return
+	}
+	select {
+	case s.input <- ptyWrite{data: replies}:
+	default: // the command has stopped reading its input
+	}
+}
+
+func (s *Session) finish(code int) {
+	s.mu.Lock()
+	s.exited = true
+	s.exitCode = code
+	msg := protocol.EncodeHost(protocol.Exit{Code: code})
+	var final []byte // the last screen, for views that fell behind
+	for v := range s.views {
+		if v.isLagging() {
+			if final == nil {
+				snapshot, err := s.vt.Snapshot()
+				if err != nil {
+					go v.fail()
+					continue
+				}
+				final = snapshot
+			}
+			v.resume(s.resyncFrames(final)...)
+		}
+		v.enqueue(frame{data: msg})
+		v.closeAfterFlush()
+	}
+	s.vt.Close()
+	s.vt = nil
+	s.mu.Unlock()
+	close(s.done)
+}
+
 // latestView returns the view that most recently typed or reported a size,
 // which takes over when the driver leaves (tmux's window-size latest).
 // Callers hold s.mu.
@@ -347,11 +355,6 @@ func (s *Session) latestView() *View {
 		}
 	}
 	return latest
-}
-
-// Send queues a control message for one view (editor ids, errors).
-func (s *Session) Send(v *View, m protocol.HostMessage) {
-	v.enqueue(frame{data: protocol.EncodeHost(m)})
 }
 
 // applySize resizes the VT and the PTY together. Callers hold s.mu.

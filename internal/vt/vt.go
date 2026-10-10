@@ -27,18 +27,21 @@ type Mirror struct {
 // lines of history (libghostty allocates whole pages, so it may keep more).
 func New(cols, rows, scrollbackLines int) (*Mirror, error) {
 	m := &Mirror{}
+	c, r := dims(cols, rows)
 	term, err := libghostty.NewTerminal(
-		libghostty.WithSize(uint16(cols), uint16(rows)),
+		libghostty.WithSize(c, r),
 		libghostty.WithMaxScrollbackLines(uint(scrollbackLines)),
 		// Replies to queries in the output (cursor position, mode reports, …).
 		// The host is the only responder, however many views are attached.
-		libghostty.WithWritePty(func(_ *libghostty.Terminal, data []byte) { m.replies.Write(data) }),
+		libghostty.WithWritePty(
+			func(_ *libghostty.Terminal, data []byte) { m.replies.Write(data) },
+		),
 		libghostty.WithTitleChanged(func(*libghostty.Terminal) { m.titleChanged = true }),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create terminal: %w", err)
 	}
-	if err := term.Resize(uint16(cols), uint16(rows), cellWidthPx, cellHeightPx); err != nil {
+	if err := term.Resize(c, r, cellWidthPx, cellHeightPx); err != nil {
 		term.Close()
 		return nil, fmt.Errorf("size terminal: %w", err)
 	}
@@ -48,10 +51,11 @@ func New(cols, rows, scrollbackLines int) (*Mirror, error) {
 
 // Write feeds PTY output. It returns the replies the terminal produced, which
 // the caller must write back to the PTY, and whether the title changed.
-func (m *Mirror) Write(p []byte) (replies []byte, titleChanged bool) {
+func (m *Mirror) Write(p []byte) ([]byte, bool) {
 	m.replies.Reset()
 	m.titleChanged = false
 	m.term.VTWrite(p)
+	var replies []byte
 	if m.replies.Len() > 0 {
 		replies = bytes.Clone(m.replies.Bytes())
 	}
@@ -62,8 +66,9 @@ func (m *Mirror) Write(p []byte) (replies []byte, titleChanged bool) {
 // PTY: the in-band size report when the program enabled mode 2048.
 func (m *Mirror) Resize(cols, rows int) ([]byte, error) {
 	m.replies.Reset()
-	if err := m.term.Resize(uint16(cols), uint16(rows), cellWidthPx, cellHeightPx); err != nil {
-		return nil, err
+	c, r := dims(cols, rows)
+	if err := m.term.Resize(c, r, cellWidthPx, cellHeightPx); err != nil {
+		return nil, fmt.Errorf("resize terminal: %w", err)
 	}
 	if m.replies.Len() == 0 {
 		return nil, nil
@@ -120,7 +125,8 @@ func (m *Mirror) PlainText() (string, error) {
 		return "", err
 	}
 	var text []byte
-	plain := func(t *libghostty.Terminal) (err error) {
+	plain := func(t *libghostty.Terminal) error {
+		var err error
 		text, err = format(t, libghostty.FormatterFormatPlain,
 			libghostty.WithFormatterUnwrap(true),
 			libghostty.WithFormatterTrim(true),
@@ -179,6 +185,11 @@ func (m *Mirror) withPrimaryClone(fn func(*libghostty.Terminal) error) error {
 	defer clone.Close()
 	clone.VTWrite([]byte("\x1b[?1049l"))
 	return fn(clone)
+}
+
+func dims(cols, rows int) (uint16, uint16) {
+	//nolint:gosec // G115: callers pass sizes within protocol.MaxDimension
+	return uint16(cols), uint16(rows)
 }
 
 func formatVT(b *bytes.Buffer, t *libghostty.Terminal) error {
@@ -249,8 +260,14 @@ func droppedBlankRows(t *libghostty.Terminal) (int, error) {
 	return max(0, int(history)+int(rows)-emitted), nil
 }
 
-func format(t *libghostty.Terminal, f libghostty.FormatterFormat, opts ...libghostty.FormatterOption) ([]byte, error) {
-	fm, err := libghostty.NewFormatter(t, append([]libghostty.FormatterOption{libghostty.WithFormatterFormat(f)}, opts...)...)
+func format(
+	t *libghostty.Terminal,
+	f libghostty.FormatterFormat,
+	opts ...libghostty.FormatterOption,
+) ([]byte, error) {
+	fm, err := libghostty.NewFormatter(
+		t,
+		append([]libghostty.FormatterOption{libghostty.WithFormatterFormat(f)}, opts...)...)
 	if err != nil {
 		return nil, fmt.Errorf("create formatter: %w", err)
 	}

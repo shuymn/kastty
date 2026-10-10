@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
@@ -31,11 +32,19 @@ var version, commit string
 // receive its last output and the exit message.
 const shutdownGrace = 3 * time.Second
 
+// readHeaderTimeout bounds how long a client may take to send request headers.
+const readHeaderTimeout = 10 * time.Second
+
+// signalExitBase follows the shell convention: a command killed by signal n
+// exits with 128 + n.
+const signalExitBase = 128
+
 func main() {
 	os.Exit(run(os.Args[1:], os.Stdout, os.Stderr))
 }
 
 func run(args []string, stdout, stderr io.Writer) int {
+	ctx := context.Background()
 	opts, err := cli.Parse(args, os.Getenv)
 	switch {
 	case errors.Is(err, cli.ErrHelp):
@@ -50,12 +59,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 
 	// Listen first and read the port back, so port 0 never races.
-	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", opts.Port))
+	var lc net.ListenConfig
+	ln, err := lc.Listen(ctx, "tcp", fmt.Sprintf("127.0.0.1:%d", opts.Port))
 	if err != nil {
 		fmt.Fprintf(stderr, "error: %v\n", err)
 		return 1
 	}
-	port := ln.Addr().(*net.TCPAddr).Port
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	if !ok {
+		panic(fmt.Sprintf("tcp listener has a %T address", ln.Addr())) // net guarantees *TCPAddr
+	}
+	port := addr.Port
 
 	// Catch signals before starting the command so none is lost.
 	signals := make(chan os.Signal, 1)
@@ -81,7 +95,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	token := newToken()
 	srv := &http.Server{
 		Handler:           server.New(h, token, port, assets),
-		ReadHeaderTimeout: 10 * time.Second,
+		ReadHeaderTimeout: readHeaderTimeout,
 	}
 	go func() { _ = srv.Serve(ln) }()
 
@@ -89,7 +103,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 	url := fmt.Sprintf("http://127.0.0.1:%d/#%s", port, token)
 	fmt.Fprintln(stdout, url)
 	if opts.Open {
-		openBrowser(url)
+		openBrowser(ctx, url)
 	}
 
 	var code int
@@ -97,7 +111,10 @@ func run(args []string, stdout, stderr io.Writer) int {
 	case <-h.Main().Done():
 		code = h.Main().ExitCode()
 	case sig := <-signals:
-		code = 128 + int(sig.(syscall.Signal))
+		code = 1
+		if s, ok := sig.(syscall.Signal); ok {
+			code = signalExitBase + int(s)
+		}
 	}
 
 	// End the sessions before the server so views get the exit message.
@@ -112,12 +129,12 @@ func newToken() string {
 	return hex.EncodeToString(b[:])
 }
 
-func openBrowser(url string) {
+func openBrowser(ctx context.Context, url string) {
 	name := "xdg-open"
 	if runtime.GOOS == "darwin" {
 		name = "open"
 	}
-	cmd := exec.Command(name, url)
+	cmd := exec.CommandContext(ctx, name, url)
 	if err := cmd.Start(); err != nil {
 		return
 	}

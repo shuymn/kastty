@@ -31,6 +31,12 @@ var (
 	ErrVersion = errors.New("version requested")
 )
 
+var (
+	errInvalidPort       = errors.New("invalid --port")
+	errInvalidScrollback = errors.New("invalid --scrollback")
+	errUnknownOption     = errors.New("unknown option")
+)
+
 // Usage is the help text.
 const Usage = `Usage: kastty [options] [--] [command [args...]]
 
@@ -75,10 +81,20 @@ func Parse(args []string, getenv func(string) string) (Options, error) {
 	}
 	var err error
 	if opts.Port, err = strconv.Atoi(port); err != nil || opts.Port < 0 || opts.Port > 65535 {
-		return Options{}, fmt.Errorf("invalid --port %q: must be an integer from 0 to 65535", port)
+		return Options{}, fmt.Errorf(
+			"%w %q: must be an integer from 0 to 65535",
+			errInvalidPort,
+			port,
+		)
 	}
-	if opts.Scrollback, err = strconv.Atoi(scrollback); err != nil || opts.Scrollback <= 0 || opts.Scrollback > protocol.MaxScrollback {
-		return Options{}, fmt.Errorf("invalid --scrollback %q: must be an integer from 1 to %d", scrollback, protocol.MaxScrollback)
+	opts.Scrollback, err = strconv.Atoi(scrollback)
+	if err != nil || opts.Scrollback <= 0 || opts.Scrollback > protocol.MaxScrollback {
+		return Options{}, fmt.Errorf(
+			"%w %q: must be an integer from 1 to %d",
+			errInvalidScrollback,
+			scrollback,
+			protocol.MaxScrollback,
+		)
 	}
 	opts.Argv = fs.Args()
 	if len(opts.Argv) == 0 {
@@ -95,7 +111,7 @@ func Parse(args []string, getenv func(string) string) (Options, error) {
 func setBool(dst *bool, v string, meaning bool) error {
 	b, err := strconv.ParseBool(v)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // flag reports it with the option name and value
 	}
 	*dst = b == meaning
 	return nil
@@ -105,7 +121,7 @@ var flagName = regexp.MustCompile(`flag provided but not defined: -+(\S+)`)
 
 func unknownFlag(err error) error {
 	if m := flagName.FindStringSubmatch(err.Error()); m != nil {
-		return fmt.Errorf("unknown option '--%s'", m[1])
+		return fmt.Errorf("%w '--%s'", errUnknownOption, m[1])
 	}
 	return err
 }

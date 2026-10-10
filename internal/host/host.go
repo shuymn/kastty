@@ -23,6 +23,8 @@ import (
 const MainID = "main"
 
 // Messages shown to the user when the editor cannot be opened.
+//
+//nolint:staticcheck // ST1005: they are sentences shown to the user as is
 var (
 	ErrEditorOpen     = errors.New("An editor overlay is already open")
 	ErrNoEditor       = errors.New("No editor configured: set $VISUAL or $EDITOR")
@@ -35,8 +37,11 @@ var (
 // editorScrollback is the history kept for the editor's own terminal.
 const editorScrollback = 1000
 
+// defaultEditorAttachTimeout is Config.EditorAttachTimeout when unset.
+const defaultEditorAttachTimeout = 10 * time.Second
+
 // initialSize is used until the first view reports its size.
-var initialSize = protocol.Size{Cols: 80, Rows: 24}
+var initialSize = protocol.Size{Cols: 80, Rows: 24} //nolint:mnd // the classic terminal size
 
 // Config configures a host.
 type Config struct {
@@ -73,7 +78,7 @@ func Start(cfg Config) (*Host, error) {
 		cfg.TempDir = os.TempDir()
 	}
 	if cfg.EditorAttachTimeout == 0 {
-		cfg.EditorAttachTimeout = 10 * time.Second
+		cfg.EditorAttachTimeout = defaultEditorAttachTimeout
 	}
 	if cfg.Logger == nil {
 		cfg.Logger = log.New(os.Stderr, "kastty: ", 0)
@@ -162,6 +167,35 @@ func (h *Host) OpenEditor(from *session.Session) (string, error) {
 	return id, nil
 }
 
+// Shutdown ends every session, killing commands still running, then gives
+// each session's views up to grace to receive the rest of the output and the
+// exit message.
+func (h *Host) Shutdown(grace time.Duration) {
+	h.mu.Lock()
+	h.closing = true
+	sessions := slices.Collect(maps.Values(h.sessions))
+	h.mu.Unlock()
+
+	var wg sync.WaitGroup
+	for _, s := range sessions {
+		wg.Go(func() {
+			select {
+			case <-s.Done():
+			default:
+				s.Kill()
+			}
+			<-s.Done()
+			// The grace starts once the session ended: killing it may take a while.
+			ctx, cancel := context.WithTimeout(context.Background(), grace)
+			defer cancel()
+			s.WaitViews(ctx)
+		})
+	}
+	wg.Wait()
+	// The editor's temp file holds the terminal text: remove it before exiting.
+	h.reapers.Wait()
+}
+
 func (h *Host) reapEditor(ed *session.Session, path string) {
 	<-ed.Done()
 	h.removeTemp(path)
@@ -189,35 +223,4 @@ func (h *Host) removeTemp(path string) {
 	if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 		h.cfg.Logger.Printf("editor: remove %s: %v", path, err)
 	}
-}
-
-// Shutdown ends every session, killing commands still running, then gives
-// each session's views up to grace to receive the rest of the output and the
-// exit message.
-func (h *Host) Shutdown(grace time.Duration) {
-	h.mu.Lock()
-	h.closing = true
-	sessions := slices.Collect(maps.Values(h.sessions))
-	h.mu.Unlock()
-
-	var wg sync.WaitGroup
-	for _, s := range sessions {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			select {
-			case <-s.Done():
-			default:
-				s.Kill()
-			}
-			<-s.Done()
-			// The grace starts once the session ended: killing it may take a while.
-			ctx, cancel := context.WithTimeout(context.Background(), grace)
-			defer cancel()
-			s.WaitViews(ctx)
-		}()
-	}
-	wg.Wait()
-	// The editor's temp file holds the terminal text: remove it before exiting.
-	h.reapers.Wait()
 }

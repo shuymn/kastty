@@ -34,15 +34,18 @@ type state struct {
 	Screen         libghostty.TerminalScreen
 	CursorVisible  bool
 	Title          string
-	Modes          map[int]bool
+	Modes          map[uint16]bool
 	ScrollbackRows uint
 }
 
-var observedModes = []int{1, 6, 7, 25, 1000, 1002, 1003, 1004, 1006, 1049, 2004}
+var observedModes = []uint16{1, 6, 7, 25, 1000, 1002, 1003, 1004, 1006, 1049, 2004}
 
 func observe(t *testing.T, m *Mirror) state {
 	t.Helper()
-	f, err := libghostty.NewFormatter(m.term, libghostty.WithFormatterFormat(libghostty.FormatterFormatPlain))
+	f, err := libghostty.NewFormatter(
+		m.term,
+		libghostty.WithFormatterFormat(libghostty.FormatterFormatPlain),
+	)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +59,7 @@ func observe(t *testing.T, m *Mirror) state {
 	for i := range lines {
 		lines[i] = strings.TrimRight(lines[i], " ")
 	}
-	s := state{Text: strings.Join(lines, "\n"), Title: m.Title(), Modes: map[int]bool{}}
+	s := state{Text: strings.Join(lines, "\n"), Title: m.Title(), Modes: map[uint16]bool{}}
 	must := func(err error) {
 		if err != nil {
 			t.Fatal(err)
@@ -73,7 +76,7 @@ func observe(t *testing.T, m *Mirror) state {
 	s.ScrollbackRows, err = m.term.ScrollbackRows()
 	must(err)
 	for _, mode := range observedModes {
-		s.Modes[mode], err = m.term.Mode(libghostty.NewMode(uint16(mode), false))
+		s.Modes[mode], err = m.term.Mode(libghostty.NewMode(mode, false))
 		must(err)
 	}
 	return s
@@ -119,18 +122,35 @@ func assertRoundTrip(t *testing.T, stream []byte) {
 func TestSnapshotRoundTrip(t *testing.T) {
 	var styled bytes.Buffer
 	for i := range 300 {
-		fmt.Fprintf(&styled, "\x1b[38;5;%dm%03d \x1b[1;4;48;2;%d;%d;%dmstyled\x1b[0m 日本語テキスト 🧑‍💻 é\r\n", i%256, i, i%256, (i*7)%256, (i*13)%256)
+		fmt.Fprintf(
+			&styled,
+			"\x1b[38;5;%dm%03d \x1b[1;4;48;2;%d;%d;%dmstyled\x1b[0m 日本語テキスト 🧑‍💻 é\r\n",
+			i%256,
+			i,
+			i%256,
+			(i*7)%256,
+			(i*13)%256,
+		)
 	}
 	cases := map[string]string{
-		"styled scrollback with CJK and emoji":  styled.String(),
-		"soft-wrapped lines":                    strings.Repeat("あいうえおかきくけこ", 30) + "\r\n" + strings.Repeat("x", 200) + "\r\nprompt$ ",
+		"styled scrollback with CJK and emoji": styled.String(),
+		"soft-wrapped lines": strings.Repeat(
+			"あいうえおかきくけこ",
+			30,
+		) + "\r\n" + strings.Repeat(
+			"x",
+			200,
+		) + "\r\nprompt$ ",
 		"wide character at the right edge":      strings.Repeat("a", 79) + "漢字\r\n",
 		"modes, scrolling region and title":     "\x1b[?1h\x1b[?2004h\x1b[?1000h\x1b[?1006h\x1b[?25l\x1b[5;20r\x1b[10;5Hinside region\x1b]2;my title\x07",
 		"hyperlink":                             "\x1b]8;;https://example.com\x1b\\link\x1b]8;;\x1b\\ after\r\n",
 		"alternate screen over primary content": "primary 1\r\nprimary 2\r\n$ vim\x1b[?1049h\x1b[?1000h\x1b[2J\x1b[Halt content\x1b[5;10Hcursor",
 		"query in history":                      "before\r\n\x1b[6nafter\r\n",
 		"blank rows below scrolled content":     strings.Repeat("row\r\n", 40) + "\r\n\r\n\r\n",
-		"scroll region after scrolled content":  strings.Repeat("row\r\n", 40) + "\x1b[2;10r\x1b[5;3H",
+		"scroll region after scrolled content": strings.Repeat(
+			"row\r\n",
+			40,
+		) + "\x1b[2;10r\x1b[5;3H",
 	}
 	for name, stream := range cases {
 		t.Run(name, func(t *testing.T) { assertRoundTrip(t, []byte(stream)) })
@@ -164,7 +184,7 @@ func record(t *testing.T, keys []string, name string, args ...string) []byte {
 	}()
 	time.Sleep(400 * time.Millisecond)
 	for _, k := range keys {
-		_, _ = f.Write([]byte(k))
+		_, _ = f.WriteString(k)
 		time.Sleep(300 * time.Millisecond)
 	}
 	_ = cmd.Process.Kill()
@@ -176,14 +196,34 @@ func record(t *testing.T, keys []string, name string, args ...string) []byte {
 
 func TestSnapshotRoundTripRecordedPrograms(t *testing.T) {
 	file := filepath.Join(t.TempDir(), "hosts.txt")
-	if err := os.WriteFile(file, []byte(strings.Repeat("127.0.0.1 localhost 日本語\n", 60)), 0o600); err != nil {
+	if err := os.WriteFile(
+		file,
+		[]byte(strings.Repeat("127.0.0.1 localhost 日本語\n", 60)),
+		0o600,
+	); err != nil {
 		t.Fatal(err)
 	}
 	t.Run("vim", func(t *testing.T) {
-		assertRoundTrip(t, record(t, []string{"10j", "\x1b:set nu\r"}, "vim", "-u", "NONE", "-N", "-c", "set mouse=a", file))
+		assertRoundTrip(
+			t,
+			record(
+				t,
+				[]string{"10j", "\x1b:set nu\r"},
+				"vim",
+				"-u",
+				"NONE",
+				"-N",
+				"-c",
+				"set mouse=a",
+				file,
+			),
+		)
 	})
 	t.Run("less", func(t *testing.T) { assertRoundTrip(t, record(t, []string{" "}, "less", file)) })
-	t.Run("fzf --height", func(t *testing.T) { assertRoundTrip(t, record(t, []string{"loc"}, "fzf", "--height", "40%")) })
+	t.Run(
+		"fzf --height",
+		func(t *testing.T) { assertRoundTrip(t, record(t, []string{"loc"}, "fzf", "--height", "40%")) },
+	)
 }
 
 func TestWriteReturnsQueryRepliesOnce(t *testing.T) {

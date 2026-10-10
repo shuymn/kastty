@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/exec"
@@ -14,7 +15,6 @@ import (
 	"time"
 
 	"github.com/coder/websocket"
-
 	"github.com/shuymn/kastty/internal/protocol"
 )
 
@@ -26,12 +26,14 @@ var binary = func() func(t *testing.T) string {
 		if path != "" {
 			return path
 		}
+		//nolint:usetesting // shared by every test, so it outlives t
 		dir, err := os.MkdirTemp("", "kastty-e2e")
 		if err != nil {
 			t.Fatal(err)
 		}
 		path = filepath.Join(dir, "kastty")
-		out, err := exec.Command("go", "build", "-ldflags", "-X main.version=v9.9.9 -X main.commit=abcdef0123", "-o", path, ".").CombinedOutput()
+		out, err := exec.Command("go", "build", "-ldflags", "-X main.version=v9.9.9 -X main.commit=abcdef0123", "-o", path, ".").
+			CombinedOutput()
 		if err != nil {
 			t.Fatalf("go build: %v\n%s", err, out)
 		}
@@ -82,7 +84,7 @@ func exitCode(t *testing.T, cmd *exec.Cmd) int {
 		if err == nil {
 			return 0
 		}
-		if ee, ok := err.(*exec.ExitError); ok {
+		if ee, ok := errors.AsType[*exec.ExitError](err); ok {
 			return ee.ExitCode()
 		}
 		t.Fatal(err)
@@ -121,7 +123,7 @@ func TestViewSeesOutputAndExit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer c.CloseNow()
+	defer func() { _ = c.CloseNow() }()
 	var seen strings.Builder
 	sent := false
 	for {
@@ -157,7 +159,8 @@ func TestVersionHelpAndUsageErrors(t *testing.T) {
 	}
 	cmd := exec.Command(binary(t), "--replay-buffer-bytes", "1")
 	stderr, _ := cmd.CombinedOutput()
-	if cmd.ProcessState.ExitCode() != 1 || !strings.Contains(string(stderr), "unknown option '--replay-buffer-bytes'") {
+	if cmd.ProcessState.ExitCode() != 1 ||
+		!strings.Contains(string(stderr), "unknown option '--replay-buffer-bytes'") {
 		t.Fatalf("removed option: exit %d, output %q", cmd.ProcessState.ExitCode(), stderr)
 	}
 }
