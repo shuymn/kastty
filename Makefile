@@ -64,9 +64,9 @@ test:
 	$(CGO_ENV) go test ./...
 	bun test web
 
-# Besides formatting and vet, lint checks that scripts/libghostty-vt.sh builds the ghostty commit
-# go-libghostty pins (GIT_TAG in its CMakeLists.txt): Renovate bumps only the Go module, and the
-# C API differs between commits.
+# Besides formatting and vet, lint checks that scripts/libghostty-vt.sh and the flake's ghostty
+# input build the ghostty commit go-libghostty pins (GIT_TAG in its CMakeLists.txt): Renovate
+# bumps only the Go module, and the C API differs between commits.
 lint:
 	@out=$$(gofmt -l $$(go list -f '{{.Dir}}' ./...)) && test -z "$$out" || \
 		{ echo "gofmt reports unformatted files:" >&2; echo "$$out" >&2; exit 1; }
@@ -75,6 +75,10 @@ lint:
 		built=$$(sed -n 's/^GHOSTTY_COMMIT=//p' scripts/libghostty-vt.sh) && \
 		test -n "$$pinned" && test "$$pinned" = "$$built" || \
 		{ echo "scripts/libghostty-vt.sh: GHOSTTY_COMMIT=$$built, but $(LIBGHOSTTY_MODULE) pins $$pinned" >&2; exit 1; }
+	@built=$$(sed -n 's/^GHOSTTY_COMMIT=//p' scripts/libghostty-vt.sh) && \
+		flake=$$(sed -n 's|.*"github:ghostty-org/ghostty/\([0-9a-f]*\)".*|\1|p' flake.nix) && \
+		test "$$flake" = "$$built" || \
+		{ echo "flake.nix: the ghostty input is $$flake, but scripts/libghostty-vt.sh builds $$built" >&2; exit 1; }
 	$(CGO_ENV) go vet ./...
 	bun run biome check .
 	bun run typecheck

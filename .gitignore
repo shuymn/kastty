@@ -28,6 +28,9 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 .cache
 *.tsbuildinfo
 
+# nix build
+/result*
+
 # IntelliJ based IDEs
 .idea
 

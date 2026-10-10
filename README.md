@@ -27,6 +27,15 @@ The name combines "cast" and "tty", with a nod to 「彁（ka）」— a ghost k
 brew install shuymn/tap/kastty
 ```
 
+### Nix
+
+```bash
+nix run github:shuymn/kastty
+nix profile install github:shuymn/kastty
+```
+
+In a flake, use `inputs.kastty.packages.${system}.default`.
+
 ## Usage
 
 ```bash

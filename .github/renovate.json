@@ -1,6 +1,10 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>shuymn/github-actions#main"],
+  "gitIgnoredAuthors": ["41898282+github-actions[bot]@users.noreply.github.com"],
+  "nix": {
+    "enabled": true
+  },
   "customManagers": [
     {
       "customType": "regex",
@@ -30,11 +34,17 @@
   ],
   "packageRules": [
     {
+      "description": "The flake's ghostty input follows GHOSTTY_COMMIT, which follows go-libghostty",
+      "matchManagers": ["nix"],
+      "matchDepNames": ["ghostty"],
+      "enabled": false
+    },
+    {
       "description": "GHOSTTY_COMMIT in scripts/libghostty-vt.sh must follow go-libghostty's pinned ghostty commit; `make lint` fails until they match",
       "matchManagers": ["gomod"],
       "matchPackageNames": ["go.mitchellh.com/libghostty"],
       "prBodyNotes": [
-        "Set `GHOSTTY_COMMIT` in `scripts/libghostty-vt.sh` to the `GIT_TAG` in go-libghostty's `CMakeLists.txt` at the new version before merging."
+        "Set `GHOSTTY_COMMIT` in `scripts/libghostty-vt.sh` and the `ghostty` input in `flake.nix` to the `GIT_TAG` in go-libghostty's `CMakeLists.txt` at the new version, and run `nix flake lock`, before merging."
       ]
     }
   ]
