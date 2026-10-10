@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Accepted (PTY サイズの扱いは [0017](0017-host-owned-terminal-state.md) により Superseded)
 
 ## Context
 

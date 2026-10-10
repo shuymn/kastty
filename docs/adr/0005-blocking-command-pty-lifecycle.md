@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Proposed (リプレイバッファに関する部分は [0017](0017-host-owned-terminal-state.md) により Superseded。PTY ライフサイクルの決定は有効)
 
 ## Context
 

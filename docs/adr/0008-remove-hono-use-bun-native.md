@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted
+Superseded by [0018](0018-go-host-and-typescript-view.md)
 
 Supersedes: [0001](0001-tech-stack-bun-hono-ghostty-web.md) の Web framework 部分
 

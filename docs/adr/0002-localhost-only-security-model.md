@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+Proposed (トークンを HTTP / WS の双方で検証する部分は [0017](0017-host-owned-terminal-state.md) により Superseded。トークンは WebSocket の接続時だけ検証する)
 
 ## Context
 
