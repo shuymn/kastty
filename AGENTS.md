@@ -6,6 +6,7 @@
 - Build, test, and lint through `make`: its targets build libghostty-vt and export the cgo environment (`PKG_CONFIG=scripts/pkg-config`, `LIBGHOSTTY_VT_PREFIX`) that bare `go build` and `go test` lack.
 - libghostty-vt comes from `scripts/libghostty-vt.sh` (the Zig pinned in `mise.toml`, path in `ZIG`); keep its ghostty commit equal to the one go-libghostty pins.
 - Use Bun only for web tooling (`bun install`, `bun run build:web`, `bun test web`, biome); keep npm/yarn/pnpm workflows out.
+- The Nix package (`flake.nix`, `nix/package.nix`) takes libghostty-vt from the flake's `ghostty` input, pinned to the same commit; after changing `bun.lock`, `go.sum`, or `flake.lock`, run `scripts/update-nix-hashes.sh`.
 
 ## APIs
 

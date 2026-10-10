@@ -1,0 +1,68 @@
+name: Refresh Nix Hashes
+
+# Renovate updates bun.lock, go.sum and flake.lock but not the fixed-output hashes that
+# nix/package.nix derives from them, so this recomputes the hashes on its pull requests.
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    branches:
+      - main
+    paths:
+      - bun.lock
+      - flake.lock
+      - go.sum
+
+permissions: {}
+
+concurrency:
+  group: refresh-nix-hashes-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  refresh-nix-hashes:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository && startsWith(github.head_ref, 'renovate/')
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Create app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
+          permission-contents: write
+
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          persist-credentials: false
+          ref: ${{ github.head_ref }}
+
+      - name: Setup Nix
+        uses: cachix/install-nix-action@13d8dd58da0234aa297dedd986986ccb8e7f3e24 # v31.11.1
+
+      - name: Refresh hashes
+        run: scripts/update-nix-hashes.sh
+
+      - name: Commit and push refreshed hashes
+        env:
+          PUSH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- nix/package.nix; then
+            echo "Nix hashes are up to date"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(nix): refresh fixed-output hashes" -- nix/package.nix
+          git push "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:"${GITHUB_HEAD_REF:?}"
