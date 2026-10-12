@@ -14,7 +14,7 @@ concurrency:
 
 env:
   # The mise release jdx/mise-action installs; Renovate updates it.
-  MISE_VERSION: 2026.10.4
+  MISE_VERSION: 2026.10.5
 
 jobs:
   lint:
