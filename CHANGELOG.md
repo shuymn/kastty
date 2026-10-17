@@ -1,5 +1,24 @@
 # Changelog
 
+## [v0.4.1](https://github.com/shuymn/kastty/compare/v0.4.0...v0.4.1) - 2026-10-17
+
+- ci: label feature PRs for tagpr's minor bump by @shuymn in https://github.com/shuymn/kastty/pull/149
+- chore(deps): update dependency jdx/mise to v2026.10.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/152
+- build: lint and format Go with golangci-lint by @shuymn in https://github.com/shuymn/kastty/pull/151
+- chore(deps): update dependency lefthook to v2.2.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/153
+- chore(deps): update dependency lefthook to v2.2.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/154
+- chore(deps): update dependency jdx/mise to v2026.10.5 by @renovate[bot] in https://github.com/shuymn/kastty/pull/155
+- chore(deps): update dependency jdx/mise to v2026.10.7 by @renovate[bot] in https://github.com/shuymn/kastty/pull/156
+- chore(deps): update astral-sh/setup-uv action to v10.3.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/157
+- chore(deps): update dependency jdx/mise to v2026.10.8 by @renovate[bot] in https://github.com/shuymn/kastty/pull/159
+- chore(deps): update dependency bun to v1.4.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/158
+- chore(deps): update dependency @types/bun to v1.4.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/160
+- chore(deps): update jdx/mise-action action to v5.1.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/161
+- chore(deps): update actions/create-github-app-token action to v3.3.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/162
+- chore(deps): update dependency lefthook to v2.2.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/163
+- chore(deps): update dependency jdx/mise to v2026.10.9 by @renovate[bot] in https://github.com/shuymn/kastty/pull/164
+- chore(deps): update dependency jdx/mise to v2026.10.10 by @renovate[bot] in https://github.com/shuymn/kastty/pull/166
+
 ## [v0.4.0](https://github.com/shuymn/kastty/compare/v0.3.0...v0.4.0) - 2026-10-10
 
 - chore(infra): declare repo settings for gh-infra by @shuymn in https://github.com/shuymn/kastty/pull/144
