@@ -39,6 +39,7 @@
         let
           pkgs = pkgsFor system;
           kastty = pkgs.callPackage ./nix/package.nix {
+            bun = pkgs.callPackage ./nix/bun.nix { };
             commit = self.rev or "";
             libghostty-vt = pkgs.callPackage "${ghostty}/nix/libghostty-vt.nix" {
               optimize = "ReleaseFast";
