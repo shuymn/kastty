@@ -15,7 +15,7 @@ NERD_FONTS_ARCHIVE="NerdFontsSymbolsOnly.tar.xz"
 
 NERD_FONTS_VERSION="3.5.0"
 FONTTOOLS_VERSION="4.67.0"
-BROTLI_VERSION="1.2.0"
+BROTLI_VERSION="1.2.1"
 
 # Resolve version
 if [[ "${1:-}" =~ ^v?[0-9] ]]; then
