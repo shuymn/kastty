@@ -3,17 +3,17 @@
     "ghostty": {
       "flake": false,
       "locked": {
-        "lastModified": 1791332467,
-        "narHash": "sha256-2hQPCXqy9uMRAhOYubHLJ3JRytqyjBkOdCz1Xh9ekMo=",
+        "lastModified": 1792616904,
+        "narHash": "sha256-xL0lDmnRW6lxC4eOEuKMi+4UDMyUG5yg8O3QKRALxNc=",
         "owner": "ghostty-org",
         "repo": "ghostty",
-        "rev": "34f39002c6e3974b54e6a6d400bd83777c5ea558",
+        "rev": "f54340ad77814fe319d136e5e915d6a48de8dd23",
         "type": "github"
       },
       "original": {
         "owner": "ghostty-org",
         "repo": "ghostty",
-        "rev": "34f39002c6e3974b54e6a6d400bd83777c5ea558",
+        "rev": "f54340ad77814fe319d136e5e915d6a48de8dd23",
         "type": "github"
       }
     },

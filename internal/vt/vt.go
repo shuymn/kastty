@@ -208,56 +208,8 @@ func formatVT(b *bytes.Buffer, t *libghostty.Terminal) error {
 	if err != nil {
 		return err
 	}
-	pad, err := droppedBlankRows(t)
-	if err != nil {
-		return err
-	}
-	if pad == 0 {
-		b.Write(full)
-		return nil
-	}
-	// The formatter stops at the last non-blank row. When the screen has
-	// scrolled, the blank rows below it matter: without them the replay puts
-	// every row one or more lines too low. Re-insert them as newlines between
-	// the content and the trailing state (scroll region, cursor, style), which
-	// the formatter emits after the content.
-	content, err := format(t, libghostty.FormatterFormatVT)
-	if err != nil {
-		return err
-	}
-	i := bytes.LastIndex(full, content)
-	if len(content) == 0 || i < 0 {
-		b.Write(full)
-		return nil
-	}
-	end := i + len(content)
-	b.Write(full[:end])
-	b.Write(bytes.Repeat([]byte("\r\n"), pad))
-	b.Write(full[end:])
+	b.Write(full)
 	return nil
-}
-
-// droppedBlankRows counts the blank rows at the bottom of the screen that the
-// formatter omits, when that changes where replayed rows land (only once
-// rows have scrolled into history).
-func droppedBlankRows(t *libghostty.Terminal) (int, error) {
-	history, err := t.ScrollbackRows()
-	if err != nil {
-		return 0, fmt.Errorf("scrollback rows: %w", err)
-	}
-	if history == 0 {
-		return 0, nil
-	}
-	rows, err := t.Rows()
-	if err != nil {
-		return 0, fmt.Errorf("rows: %w", err)
-	}
-	plain, err := format(t, libghostty.FormatterFormatPlain)
-	if err != nil {
-		return 0, err
-	}
-	emitted := bytes.Count(plain, []byte("\n")) + 1
-	return max(0, int(history)+int(rows)-emitted), nil
 }
 
 func format(
