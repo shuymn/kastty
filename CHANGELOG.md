@@ -1,5 +1,46 @@
 # Changelog
 
+## [v0.4.1](https://github.com/shuymn/kastty/compare/v0.4.0...v0.4.1) - 2026-10-26
+
+- ci: label feature PRs for tagpr's minor bump by @shuymn in https://github.com/shuymn/kastty/pull/149
+- chore(deps): update dependency jdx/mise to v2026.10.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/152
+- build: lint and format Go with golangci-lint by @shuymn in https://github.com/shuymn/kastty/pull/151
+- chore(deps): update dependency lefthook to v2.2.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/153
+- chore(deps): update dependency lefthook to v2.2.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/154
+- chore(deps): update dependency jdx/mise to v2026.10.5 by @renovate[bot] in https://github.com/shuymn/kastty/pull/155
+- chore(deps): update dependency jdx/mise to v2026.10.7 by @renovate[bot] in https://github.com/shuymn/kastty/pull/156
+- chore(deps): update astral-sh/setup-uv action to v10.3.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/157
+- chore(deps): update dependency jdx/mise to v2026.10.8 by @renovate[bot] in https://github.com/shuymn/kastty/pull/159
+- chore(deps): update dependency bun to v1.4.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/158
+- chore(deps): update dependency @types/bun to v1.4.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/160
+- chore(deps): update jdx/mise-action action to v5.1.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/161
+- chore(deps): update actions/create-github-app-token action to v3.3.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/162
+- chore(deps): update dependency lefthook to v2.2.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/163
+- chore(deps): update dependency jdx/mise to v2026.10.9 by @renovate[bot] in https://github.com/shuymn/kastty/pull/164
+- chore(deps): update dependency jdx/mise to v2026.10.10 by @renovate[bot] in https://github.com/shuymn/kastty/pull/166
+- chore(deps): update cachix/install-nix-action action to v31.11.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/167
+- chore(deps): update dependency fonttools to v4.67.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/168
+- chore(deps): update dependency jdx/mise to v2026.10.11 by @renovate[bot] in https://github.com/shuymn/kastty/pull/169
+- chore(deps): update jdx/mise-action action to v5.2.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/172
+- chore(deps): update songmu/tagpr action to v1.21.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/170
+- chore(deps): update dependency jdx/mise to v2026.10.13 by @renovate[bot] in https://github.com/shuymn/kastty/pull/173
+- chore(deps): update commitlint monorepo to v21.2.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/174
+- chore(deps): update dependency jdx/mise to v2026.10.14 by @renovate[bot] in https://github.com/shuymn/kastty/pull/175
+- chore(deps): update jdx/mise-action action to v5.2.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/178
+- chore(deps): update dependency jdx/mise to v2026.10.15 by @renovate[bot] in https://github.com/shuymn/kastty/pull/177
+- Update Bun, Go, and mise for CA distrust by @shuymn in https://github.com/shuymn/kastty/pull/176
+- chore(deps): update jdx/mise-action action to v5.2.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/179
+- chore(deps): update astral-sh/setup-uv action to v10.3.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/181
+- chore(deps): update astral-sh/setup-uv action to v10.3.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/182
+- chore(deps): update dependency brotli to v1.2.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/183
+- chore(deps): update cachix/install-nix-action action to v31.11.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/184
+- chore(deps): update dependency @types/bun to v1.4.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/185
+- chore(deps): update songmu/tagpr action to v1.21.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/186
+- chore(deps): update dependency golangci-lint to v2.15.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/171
+- chore(deps): update dependency @biomejs/biome to v2.6.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/180
+- fix(deps): update go.mitchellh.com/libghostty digest to df1957c by @renovate[bot] in https://github.com/shuymn/kastty/pull/165
+- chore(deps): update dependency jdx/mise to v2026.10.18 by @renovate[bot] in https://github.com/shuymn/kastty/pull/187
+
 ## [v0.4.0](https://github.com/shuymn/kastty/compare/v0.3.0...v0.4.0) - 2026-10-10
 
 - chore(infra): declare repo settings for gh-infra by @shuymn in https://github.com/shuymn/kastty/pull/144
