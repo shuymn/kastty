@@ -129,7 +129,7 @@ func (p *PTY) Resize(cols, rows int) error {
 		return fmt.Errorf("resize: %w", err)
 	}
 	if errno != 0 {
-		return errno
+		return fmt.Errorf("resize: %w", errno)
 	}
 	return nil
 }
