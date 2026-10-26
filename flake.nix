@@ -11,7 +11,7 @@
 
     # libghostty-vt, at the commit scripts/libghostty-vt.sh builds (`make lint` checks it).
     ghostty = {
-      url = "github:ghostty-org/ghostty/34f39002c6e3974b54e6a6d400bd83777c5ea558";
+      url = "github:ghostty-org/ghostty/f54340ad77814fe319d136e5e915d6a48de8dd23";
       flake = false;
     };
   };

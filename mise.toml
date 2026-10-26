@@ -5,5 +5,5 @@ lockfile = false
 
 [tools]
 bun = "1.4.4"
-zig = "0.16.0"
+zig = "0.17.0"
 golangci-lint = "2.15.0"

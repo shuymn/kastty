@@ -8,7 +8,7 @@
 # match the one go-libghostty pins in its CMakeLists.txt, or the C API may differ.
 set -euo pipefail
 
-GHOSTTY_COMMIT=34f39002c6e3974b54e6a6d400bd83777c5ea558
+GHOSTTY_COMMIT=f54340ad77814fe319d136e5e915d6a48de8dd23
 ZIG=${ZIG:-zig}
 
 target=${1:-native}
