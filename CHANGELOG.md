@@ -1,5 +1,15 @@
 # Changelog
 
+## [v0.4.2](https://github.com/shuymn/kastty/compare/v0.4.1...v0.4.2) - 2026-10-31
+
+- chore(deps): update jdx/mise-action action to v5.2.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/188
+- chore(deps): update dependency jdx/mise to v2026.10.19 by @renovate[bot] in https://github.com/shuymn/kastty/pull/191
+- chore(deps): update dependency @biomejs/biome to v2.6.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/190
+- chore(deps): update dependency jdx/mise to v2026.10.20 by @renovate[bot] in https://github.com/shuymn/kastty/pull/192
+- chore(deps): update jdx/mise-action action to v5.2.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/194
+- chore(deps): update dependency jdx/mise to v2026.10.21 by @renovate[bot] in https://github.com/shuymn/kastty/pull/193
+- chore(deps): update dependency fonttools to v4.68.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/195
+
 ## [v0.4.1](https://github.com/shuymn/kastty/compare/v0.4.0...v0.4.1) - 2026-10-26
 
 - ci: label feature PRs for tagpr's minor bump by @shuymn in https://github.com/shuymn/kastty/pull/149
