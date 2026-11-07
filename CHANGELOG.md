@@ -1,5 +1,25 @@
 # Changelog
 
+## [v0.4.2](https://github.com/shuymn/kastty/compare/v0.4.1...v0.4.2) - 2026-11-07
+
+- chore(deps): update jdx/mise-action action to v5.2.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/188
+- chore(deps): update dependency jdx/mise to v2026.10.19 by @renovate[bot] in https://github.com/shuymn/kastty/pull/191
+- chore(deps): update dependency @biomejs/biome to v2.6.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/190
+- chore(deps): update dependency jdx/mise to v2026.10.20 by @renovate[bot] in https://github.com/shuymn/kastty/pull/192
+- chore(deps): update jdx/mise-action action to v5.2.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/194
+- chore(deps): update dependency jdx/mise to v2026.10.21 by @renovate[bot] in https://github.com/shuymn/kastty/pull/193
+- chore(deps): update dependency fonttools to v4.68.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/195
+- chore(deps): update astral-sh/setup-uv action to v10.3.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/196
+- chore(deps): update dependency @biomejs/biome to v2.6.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/197
+- chore(deps): update dependency jdx/mise to v2026.10.23 by @renovate[bot] in https://github.com/shuymn/kastty/pull/198
+- chore(deps): update dependency jdx/mise to v2026.10.24 by @renovate[bot] in https://github.com/shuymn/kastty/pull/199
+- chore(deps): update dependency ryanoasis/nerd-fonts to v3.5.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/200
+- chore(deps): update dependency jdx/mise to v2026.10.25 by @renovate[bot] in https://github.com/shuymn/kastty/pull/201
+- chore(deps): update jdx/mise-action action to v5.2.5 by @renovate[bot] in https://github.com/shuymn/kastty/pull/202
+- chore(deps): update songmu/tagpr action to v1.22.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/204
+- chore(deps): update jdx/mise-action action to v5.2.6 by @renovate[bot] in https://github.com/shuymn/kastty/pull/203
+- chore(deps): update dependency jdx/mise to v2026.11.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/205
+
 ## [v0.4.1](https://github.com/shuymn/kastty/compare/v0.4.0...v0.4.1) - 2026-10-26
 
 - ci: label feature PRs for tagpr's minor bump by @shuymn in https://github.com/shuymn/kastty/pull/149
