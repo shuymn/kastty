@@ -1,5 +1,45 @@
 # Changelog
 
+## [v0.4.2](https://github.com/shuymn/kastty/compare/v0.4.1...v0.4.2) - 2026-11-20
+
+- chore(deps): update jdx/mise-action action to v5.2.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/188
+- chore(deps): update dependency jdx/mise to v2026.10.19 by @renovate[bot] in https://github.com/shuymn/kastty/pull/191
+- chore(deps): update dependency @biomejs/biome to v2.6.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/190
+- chore(deps): update dependency jdx/mise to v2026.10.20 by @renovate[bot] in https://github.com/shuymn/kastty/pull/192
+- chore(deps): update jdx/mise-action action to v5.2.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/194
+- chore(deps): update dependency jdx/mise to v2026.10.21 by @renovate[bot] in https://github.com/shuymn/kastty/pull/193
+- chore(deps): update dependency fonttools to v4.68.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/195
+- chore(deps): update astral-sh/setup-uv action to v10.3.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/196
+- chore(deps): update dependency @biomejs/biome to v2.6.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/197
+- chore(deps): update dependency jdx/mise to v2026.10.23 by @renovate[bot] in https://github.com/shuymn/kastty/pull/198
+- chore(deps): update dependency jdx/mise to v2026.10.24 by @renovate[bot] in https://github.com/shuymn/kastty/pull/199
+- chore(deps): update dependency ryanoasis/nerd-fonts to v3.5.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/200
+- chore(deps): update dependency jdx/mise to v2026.10.25 by @renovate[bot] in https://github.com/shuymn/kastty/pull/201
+- chore(deps): update jdx/mise-action action to v5.2.5 by @renovate[bot] in https://github.com/shuymn/kastty/pull/202
+- chore(deps): update songmu/tagpr action to v1.22.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/204
+- chore(deps): update jdx/mise-action action to v5.2.6 by @renovate[bot] in https://github.com/shuymn/kastty/pull/203
+- chore(deps): update dependency jdx/mise to v2026.11.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/205
+- chore(deps): update dependency @biomejs/biome to v2.6.5 by @renovate[bot] in https://github.com/shuymn/kastty/pull/206
+- chore(deps): update dependency jdx/mise to v2026.11.1 by @renovate[bot] in https://github.com/shuymn/kastty/pull/207
+- chore(deps): update dependency jdx/mise to v2026.11.2 by @renovate[bot] in https://github.com/shuymn/kastty/pull/208
+- chore(deps): update dependency @biomejs/biome to v2.6.6 by @renovate[bot] in https://github.com/shuymn/kastty/pull/209
+- chore(deps): update dependency jdx/mise to v2026.11.3 by @renovate[bot] in https://github.com/shuymn/kastty/pull/210
+- chore(deps): update jdx/mise-action action to v5.2.7 by @renovate[bot] in https://github.com/shuymn/kastty/pull/211
+- chore(deps): update dependency jdx/mise to v2026.11.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/213
+- chore(deps): update dependency jdx/mise to v2026.11.5 by @renovate[bot] in https://github.com/shuymn/kastty/pull/214
+- chore(deps): update dependency jdx/mise to v2026.11.6 by @renovate[bot] in https://github.com/shuymn/kastty/pull/215
+- chore(deps): update cachix/install-nix-action action to v31.11.4 by @renovate[bot] in https://github.com/shuymn/kastty/pull/216
+- chore(deps): update cachix/install-nix-action action to v31.11.5 by @renovate[bot] in https://github.com/shuymn/kastty/pull/217
+- chore(deps): update dependency @biomejs/biome to v2.6.7 by @renovate[bot] in https://github.com/shuymn/kastty/pull/218
+- chore(deps): update dependency jdx/mise to v2026.11.7 by @renovate[bot] in https://github.com/shuymn/kastty/pull/220
+- chore(deps): update dependency @tsconfig/bun to v1.0.12 by @renovate[bot] in https://github.com/shuymn/kastty/pull/219
+- chore(deps): update jdx/mise-action action to v5.2.8 by @renovate[bot] in https://github.com/shuymn/kastty/pull/221
+- chore(deps): update dependency jdx/mise to v2026.11.8 by @renovate[bot] in https://github.com/shuymn/kastty/pull/222
+- chore(deps): update dependency @biomejs/biome to v2.6.8 by @renovate[bot] in https://github.com/shuymn/kastty/pull/223
+- chore(deps): update jdx/mise-action action to v5.2.9 by @renovate[bot] in https://github.com/shuymn/kastty/pull/225
+- chore(deps): update dependency jdx/mise to v2026.11.9 by @renovate[bot] in https://github.com/shuymn/kastty/pull/224
+- chore(deps): update actions/setup-go action to v7.1.0 by @renovate[bot] in https://github.com/shuymn/kastty/pull/226
+
 ## [v0.4.1](https://github.com/shuymn/kastty/compare/v0.4.0...v0.4.1) - 2026-10-26
 
 - ci: label feature PRs for tagpr's minor bump by @shuymn in https://github.com/shuymn/kastty/pull/149
