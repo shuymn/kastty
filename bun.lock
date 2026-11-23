@@ -13,7 +13,7 @@
         "@commitlint/cli": "21.2.4",
         "@commitlint/config-conventional": "21.2.4",
         "@tsconfig/bun": "1.0.12",
-        "@types/bun": "1.4.4",
+        "@types/bun": "1.4.5",
         "lefthook": "2.2.2",
       },
       "peerDependencies": {
@@ -94,7 +94,7 @@
 
     "@tsconfig/bun": ["@tsconfig/bun@1.0.12", "https://npm.flatt.tech/@tsconfig/bun/-/bun-1.0.12.tgz", {}, "sha512-/7sosWfGyWpPtJGwQtTcq8piOWZF8Xjy57lx//8MGBdn5a03Q6qcDTcZ9Zo3Qv3Ui764mp1HZiMlL+RYU6WarA=="],
 
-    "@types/bun": ["@types/bun@1.4.4", "https://npm.flatt.tech/@types/bun/-/bun-1.4.4.tgz", { "dependencies": { "bun-types": "1.4.4" } }, "sha512-9wkRDXUXK124pEnAutE6n/l18j+i9GC5IAHK8TmX/2nlySETmky0OU6yL5U8pW1AoKh++AN9auDCr647BfurjQ=="],
+    "@types/bun": ["@types/bun@1.4.5", "https://npm.flatt.tech/@types/bun/-/bun-1.4.5.tgz", { "dependencies": { "bun-types": "1.4.5" } }, "sha512-DpgwNI9z0L1S0gtb45QLCWgwCUcMLnsHYMJHQvpNj7erGiCGBvpggltAIeARrtobNMKMuy0UP7i56tKKgwFs/Q=="],
 
     "@types/node": ["@types/node@26.6.5", "https://npm.flatt.tech/@types/node/-/node-26.6.5.tgz", { "dependencies": { "undici-types": "~8.9.0" } }, "sha512-uMzsv9stDdofIZBx4UGh4Z9ZgXnGC9seRDscilBcTHAeOFk67MZg/k9bWVfO+bk4qZmG+l52hRnLwUiH2LnJTg=="],
 
@@ -108,7 +108,7 @@
 
     "argue-cli": ["argue-cli@3.2.0", "https://npm.flatt.tech/argue-cli/-/argue-cli-3.2.0.tgz", {}, "sha512-VipTB0gXgGIFO2Rg9yEVN5wLt2AurJcZqDbgmYSwPwsykhLrQhs240/bfceev4w68lI8JshoOJIk9uW7tFzROw=="],
 
-    "bun-types": ["bun-types@1.4.4", "https://npm.flatt.tech/bun-types/-/bun-types-1.4.4.tgz", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-yjrJh5oGX7mMPKGd19YXyIjmEuj4G4zNC30bs7PM9Az7NQ3ndF3j6hbeRdvJTRQEhJ/FYQwW0a2moweEi2hMxQ=="],
+    "bun-types": ["bun-types@1.4.5", "https://npm.flatt.tech/bun-types/-/bun-types-1.4.5.tgz", { "dependencies": { "@types/node": "*", "undici-types": "*" } }, "sha512-ECHn+9dhL3wv0G6u0+7dQvrnaimXiRDxxerYBmhTaLyJEEuvTPWk2Fye3XIf5Y++JIIiHKfQw4Z7V5D8KuiXbg=="],
 
     "callsites": ["callsites@3.1.0", "https://npm.flatt.tech/callsites/-/callsites-3.1.0.tgz", {}, "sha512-P8BjAsXvZS+VIDUI11hHCQEv74YT67YUi5JJFNWIqL235sBmjX4+qx9Muvls5ivyNENctx46xQLQ3aTuE7ssaQ=="],
 
