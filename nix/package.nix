@@ -90,7 +90,7 @@ buildGoModule {
   pname = "kastty";
   inherit version src;
 
-  vendorHash = "sha256-6jTI7chLPb/oxlRWcSCoy+un6kS15GRgW5qxFRowaDw=";
+  vendorHash = "sha256-SVkvhyO8TNfNYOI5SKu/wOV6JHB6e0JmBIO3JRL5rtE=";
 
   # The same cgo setup as `make build`: the bundled pkg-config stand-in points go-libghostty at
   # the static library.
